@@ -1,15 +1,14 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// --- CONFIGURACIÓN DE FIREBASE ---
+// CONFIGURACIÓN DE FIREBASE
 const firebaseConfig = {
     apiKey: "AIzaSyCvJx96Z6LoG9O1UEs-KCNfqjpRrVFjVBQ",
     authDomain: "spideytracker-591bb.firebaseapp.com",
     projectId: "spideytracker-591bb",
     storageBucket: "spideytracker-591bb.firebasestorage.app",
     messagingSenderId: "923704989530",
-    appId: "1:923704989530:web:74debc7597acbc80a00563",
-    measurementId: "G-RFC57L9T0Y"
+    appId: "1:923704989530:web:74debc7597acbc80a00563"
 };
 
 // Inicializar Firebase
