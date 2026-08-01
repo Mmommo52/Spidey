@@ -3,48 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spidey Console</title>
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <!-- Estilos personalizados -->
-    <link rel="stylesheet" href="./style.css">
+    <title>Spider-Man Tactical Interface</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Estilos de Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
 
-    <!-- MODO VÍCTIMA (Pantalla sigilosa) -->
-    <div id="stealth-screen" style="display: none;">
-        <div class="loader-content">
-            <h2>Cargando recurso...</h2>
-            <p>Por favor espera un momento.</p>
-        </div>
-    </div>
-
-    <!-- MODO CONSOLA PRINCIPAL -->
-    <div id="main-console">
-        <div class="console-container">
-            <div id="banner-status" class="banner">INICIALIZANDO SISTEMA...</div>
+    <div class="console-container">
+        <!-- Pantalla Superior: Mapa -->
+        <div class="top-screen">
             <div id="map"></div>
-            <div class="button-grid">
-                <button onclick="cambiarAlerta('A1')">A.1</button>
-                <button onclick="cambiarPerfil('PROF 1')">PROF 1</button>
-                <button onclick="obtenerUbicacionActual()">MY LOC</button>
-                <button onclick="abrirChat()">CHAT</button>
-                
-                <button onclick="cambiarAlerta('A2')">A.2</button>
-                <button onclick="cambiarPerfil('PROF 2')">PROF 2</button>
-                <button onclick="accionRastrearObjetivo()">RASTREAR</button>
-                <button onclick="verArchivo()">ARCHIVE</button>
-                
-                <button onclick="cambiarPerfil('PROF 3')">PROF 3</button>
-                <button onclick="centrarEnMiUbicacion()">CENTER</button>
-                <button onclick="compartirEnlace()">SHARE LINK</button>
+            
+            <div class="notification-banner" id="banner-status">
+                TACTICAL FEED<br>AWAITING SIGNAL...
             </div>
         </div>
+
+        <!-- Panel de Control Inferior -->
+        <div class="bottom-panel">
+            <!-- Fila 1 -->
+            <button class="btn btn-green" onclick="cambiarAlerta('A.1')">A.1</button>
+            <button class="btn btn-green" onclick="cambiarPerfil(1)">PROF 1</button>
+            <button class="btn btn-blue" onclick="obtenerUbicacionActual(true)">MY LOC</button>
+            <button class="btn" onclick="abrirChat()">CHAT</button>
+
+            <!-- Fila 2 -->
+            <button class="btn btn-red" onclick="cambiarAlerta('A.2')">A.2</button>
+            <button class="btn btn-green" onclick="cambiarPerfil(2)">PROF 2</button>
+            <button class="btn btn-red" onclick="accionRastrearObjetivo()">RASTREAR</button>
+            <button class="btn" onclick="verArchivo()">ARCHIVE</button>
+
+            <!-- Fila 3 -->
+            <div></div>
+            <button class="btn btn-green" onclick="cambiarPerfil(3)">PROF 3</button>
+            <!-- Botón CENTER modificado para centrar en mi ubicación -->
+            <button class="btn" onclick="centrarEnMiUbicacion()">CENTER MY LOC</button>
+            <button class="btn" onclick="compartirEnlace()">SHARE LINK</button>
+        </div>
     </div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <!-- Script principal -->
-    <script type="module" src="./script.js"></script>
+    <!-- Scripts de Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Script principal con Firebase integrado y mejoras de visualización -->
+    <script src="script.js" type="module"></script>
 </body>
 </html>
