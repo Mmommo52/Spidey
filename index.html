@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spider-Man Tactical Interface</title>
-    <link rel="stylesheet" href="style.css">
     <!-- Estilos de Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Estilos personalizados -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -37,7 +38,6 @@
             <!-- Fila 3 -->
             <div></div>
             <button class="btn btn-green" onclick="cambiarPerfil(3)">PROF 3</button>
-            <!-- Botón CENTER modificado para centrar en mi ubicación -->
             <button class="btn" onclick="centrarEnMiUbicacion()">CENTER MY LOC</button>
             <button class="btn" onclick="compartirEnlace()">SHARE LINK</button>
         </div>
@@ -45,7 +45,7 @@
 
     <!-- Scripts de Leaflet -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Script principal con Firebase integrado y mejoras de visualización -->
+    <!-- Script principal con Firebase integrado -->
     <script src="script.js" type="module"></script>
 </body>
 </html>
