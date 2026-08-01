@@ -4,10 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spider-Man Tactical Interface</title>
+    <link rel="stylesheet" href="style.css">
     <!-- Estilos de Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Estilos personalizados -->
-    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -26,7 +25,7 @@
             <!-- Fila 1 -->
             <button class="btn btn-green" onclick="cambiarAlerta('A.1')">A.1</button>
             <button class="btn btn-green" onclick="cambiarPerfil(1)">PROF 1</button>
-            <button class="btn btn-blue" onclick="obtenerUbicacionActual()">MY LOC</button>
+            <button class="btn btn-blue" onclick="obtenerUbicacionActual(false)">LOCATION</button>
             <button class="btn" onclick="abrirChat()">CHAT</button>
 
             <!-- Fila 2 -->
@@ -38,7 +37,7 @@
             <!-- Fila 3 -->
             <div></div>
             <button class="btn btn-green" onclick="cambiarPerfil(3)">PROF 3</button>
-            <button class="btn" onclick="centrarEnMiUbicacion()">CENTER MY LOC</button>
+            <button class="btn" onclick="centrarUbicacion()">CENTER</button>
             <button class="btn" onclick="compartirEnlace()">SHARE LINK</button>
         </div>
     </div>
