@@ -14,7 +14,7 @@ body {
     position: relative;
 }
 
-/* Pestañas laterales izquierdas */
+/* Pestañas laterales izquierdas estilo consola portátil */
 .side-tabs {
     display: flex;
     flex-direction: column;
