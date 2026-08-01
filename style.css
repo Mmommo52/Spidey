@@ -1,102 +1,49 @@
-body {
-    background-color: #121620;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+/* Asegurar que html, body y el contenedor principal ocupen toda la pantalla */
+html, body {
     margin: 0;
-    font-family: 'Courier New', Courier, monospace;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #0b0f19; /* O el color oscuro que uses */
+    font-family: sans-serif;
 }
 
-.console-container {
-    width: 420px;
-    background-color: #5bc0de;
-    border: 6px solid #2b829d;
-    border-radius: 12px;
-    padding: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+.tactical-container {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    box-sizing: border-box;
 }
 
-/* Pantalla superior contenedora del mapa */
-.top-screen {
-    background-color: #0b1329;
-    border: 4px solid #2b829d;
-    border-radius: 6px;
-    height: 320px;
+/* El contenedor del feed o mapa debe tener dimensiones fijas o relativas visibles */
+.feed-box {
+    flex-grow: 1;
+    height: 100%;
     position: relative;
-    overflow: hidden;
 }
 
-/* Forzar que el mapa llene toda la pantalla superior */
+/* ¡Vital para Leaflet! Si #map no tiene altura, la pantalla se queda en negro o invisible */
 #map {
     width: 100%;
     height: 100%;
-    z-index: 1;
-}
-
-.notification-banner {
     position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #f0ad4e;
-    border: 2px solid #0b1329;
-    color: #7b1113;
-    text-align: center;
-    font-weight: bold;
-    font-size: 13px;
-    padding: 4px;
-    width: 75%;
-    border-radius: 4px;
-    box-shadow: 0 2px 0 #b3742d;
-    z-index: 1000;
-    pointer-events: none;
+    top: 0;
+    left: 0;
 }
 
-/* Panel de botones */
-.bottom-panel {
-    margin-top: 10px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
+/* Panel de control flotante o lateral */
+.control-panel {
+    width: 300px;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #111827;
 }
 
-.btn {
-    background-color: #f0ad4e;
-    border: 2px solid #b3742d;
-    border-radius: 4px;
-    color: #2b2b2b;
+.btn-sys {
+    padding: 15px 30px;
+    font-size: 16px;
     font-weight: bold;
-    font-size: 10px;
-    padding: 8px 2px;
-    text-align: center;
     cursor: pointer;
-    box-shadow: 0 3px 0 #b3742d;
-    transition: all 0.1s ease;
-}
-
-.btn:active {
-    transform: translateY(2px);
-    box-shadow: 0 1px 0 #b3742d;
-}
-
-.btn-green {
-    background-color: #5cb85c;
-    border-color: #398439;
-    box-shadow: 0 3px 0 #398439;
-    color: #fff;
-}
-
-.btn-red {
-    background-color: #d9534f;
-    border-color: #b52b27;
-    box-shadow: 0 3px 0 #b52b27;
-    color: #fff;
-}
-
-.btn-blue {
-    background-color: #46b8da;
-    border-color: #269abc;
-    box-shadow: 0 3px 0 #269abc;
-    color: #fff;
 }
