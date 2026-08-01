@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spidey Console</title>
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <!-- Estilos personalizados -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 
-    <!-- MODO VÍCTIMA (Pantalla de carga / sigilosa) -->
+    <!-- MODO VÍCTIMA (Pantalla sigilosa) -->
     <div id="stealth-screen" style="display: none;">
         <div class="loader-content">
             <h2>Cargando recurso...</h2>
@@ -19,16 +19,11 @@
         </div>
     </div>
 
-    <!-- MODO CONSOLA PRINCIPAL (Tu interfaz táctica) -->
+    <!-- MODO CONSOLA PRINCIPAL -->
     <div id="main-console">
         <div class="console-container">
-            <!-- Banner de estado -->
             <div id="banner-status" class="banner">INICIALIZANDO SISTEMA...</div>
-
-            <!-- Contenedor del Mapa (Obligatorio con altura fija en CSS) -->
             <div id="map"></div>
-
-            <!-- Botonera de control -->
             <div class="button-grid">
                 <button onclick="cambiarAlerta('A1')">A.1</button>
                 <button onclick="cambiarPerfil('PROF 1')">PROF 1</button>
@@ -48,8 +43,8 @@
     </div>
 
     <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Script principal como Módulo -->
-    <script type="module" src="script.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Script principal -->
+    <script type="module" src="./script.js"></script>
 </body>
 </html>
