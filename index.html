@@ -5,31 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spider-Man Tactical Interface</title>
     
-    <!-- Estilos de Leaflet para el mapa -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <!-- Tus estilos CSS (si los tienes en un archivo externo o incrustados) -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div class="tactical-container">
-        <!-- El área oscura donde se visualizará el mapa -->
         <div class="feed-box" style="position: relative; overflow: hidden;">
             <div id="map" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1;"></div>
         </div>
 
-        <!-- Botones de control -->
         <div class="control-panel">
             <button id="sysCheckBtn" class="btn-sys">SYS.CHECK</button>
-            <!-- Otros botones de tu interfaz -->
         </div>
     </div>
 
-    <!-- Script de Leaflet (debe ir antes de tu script) -->
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- Tu script principal con Firebase -->
-    <script type="module" src="script.js"></script>
+
+    <!-- Firebase App (Core) y Firebase Firestore desde CDN -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <!-- Tu script principal (SIN type="module") -->
+    <script src="script.js"></script>
 </body>
 </html>
