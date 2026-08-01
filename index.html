@@ -10,35 +10,59 @@
 </head>
 <body>
 
-    <div class="console-container">
-        <!-- Pantalla Superior: Mapa -->
-        <div class="top-screen">
-            <div id="map"></div>
-            
-            <div class="notification-banner" id="banner-status">
-                TACTICAL FEED<br>AWAITING SIGNAL...
-            </div>
+    <div class="console-outer-frame">
+        <!-- Pestañas/Iconos laterales izquierdos estilo consola portátil -->
+        <div class="side-tabs">
+            <div class="side-tab">O</div>
+            <div class="side-tab">S</div>
+            <div class="side-tab">T</div>
+            <div class="side-tab spider-avatar-tab">🕷️</div>
+            <div class="side-tab mini-avatar-tab">👤</div>
         </div>
 
-        <!-- Panel de Control Inferior -->
-        <div class="bottom-panel">
-            <!-- Fila 1 -->
-            <button class="btn btn-green" onclick="cambiarAlerta('A.1')">A.1</button>
-            <button class="btn btn-green" onclick="cambiarPerfil(1)">PROF 1</button>
-            <button class="btn btn-blue" onclick="obtenerUbicacionActual(false)">LOCATION</button>
-            <button class="btn" onclick="abrirChat()">CHAT</button>
+        <div class="console-container">
+            <!-- Cabecera Superior con la Máscara y Temporizadores -->
+            <div class="top-header-bar">
+                <div class="timer-box">00:00</div>
+                <div class="spidey-mask-icon">🕷️</div>
+                <div class="timer-box">00:00</div>
+            </div>
 
-            <!-- Fila 2 -->
-            <button class="btn btn-red" onclick="cambiarAlerta('A.2')">A.2</button>
-            <button class="btn btn-green" onclick="cambiarPerfil(2)">PROF 2</button>
-            <button class="btn btn-red" onclick="accionRastrearObjetivo()">RASTREAR</button>
-            <button class="btn" onclick="verArchivo()">ARCHIVE</button>
+            <!-- Pantalla Superior: Mapa -->
+            <div class="top-screen">
+                <div id="map"></div>
+                
+                <div class="notification-banner" id="banner-status">
+                    NEW SIGHTING<br>LOCATION: FOUND!
+                </div>
+            </div>
 
-            <!-- Fila 3 -->
-            <div></div>
-            <button class="btn btn-green" onclick="cambiarPerfil(3)">PROF 3</button>
-            <button class="btn" onclick="centrarUbicacion()">CENTER</button>
-            <button class="btn" onclick="compartirEnlace()">SHARE LINK</button>
+            <!-- Panel de Control Inferior -->
+            <div class="bottom-panel">
+                <!-- Columna 1 -->
+                <div class="btn-col">
+                    <button class="btn btn-green" onclick="cambiarAlerta('A.1')">A.1</button>
+                    <button class="btn btn-red" onclick="cambiarAlerta('A.2')">A.2</button>
+                </div>
+                <!-- Columna 2 -->
+                <div class="btn-col">
+                    <button class="btn btn-green" onclick="cambiarPerfil(1)">PROF 1</button>
+                    <button class="btn btn-green" onclick="cambiarPerfil(2)">PROF 2</button>
+                    <button class="btn btn-green" onclick="cambiarPerfil(3)">PROF 3</button>
+                </div>
+                <!-- Columna 3 -->
+                <div class="btn-col">
+                    <button class="btn btn-orange" onclick="accionTerrain()">TERRAIN</button>
+                    <button class="btn btn-blue" onclick="accion3DView()">3D VIEW</button>
+                    <button class="btn btn-orange" onclick="centrarUbicacion()">CENTER LOC</button>
+                </div>
+                <!-- Columna 4 -->
+                <div class="btn-col">
+                    <button class="btn btn-orange" onclick="abrirChat()">CHAT</button>
+                    <button class="btn btn-orange" onclick="verArchivo()">ARCHIVE</button>
+                    <button class="btn btn-orange" onclick="compartirEnlace()">SHARE</button>
+                </div>
+            </div>
         </div>
     </div>
 
