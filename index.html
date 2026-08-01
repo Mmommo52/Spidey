@@ -4,9 +4,197 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spider-Man Tactical Interface</title>
-    <link rel="stylesheet" href="style.css">
     <!-- Estilos de Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            background-color: #121620;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .console-outer-frame {
+            display: flex;
+            align-items: flex-start;
+            position: relative;
+        }
+
+        /* Pestañas laterales izquierdas estilo consola portátil */
+        .side-tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-right: -4px;
+            z-index: 10;
+            padding-top: 40px;
+        }
+
+        .side-tab {
+            background-color: #d9534f;
+            border: 2px solid #b52b27;
+            color: white;
+            font-weight: bold;
+            font-size: 11px;
+            width: 32px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-top-left-radius: 6px;
+            border-bottom-left-radius: 6px;
+            box-shadow: -2px 2px 0 #8b1e1b;
+        }
+
+        .spider-avatar-tab {
+            background-color: #d9534f;
+            height: 38px;
+        }
+
+        .mini-avatar-tab {
+            background-color: #c9302c;
+            height: 38px;
+        }
+
+        /* Contenedor principal de la consola */
+        .console-container {
+            width: 440px;
+            background-color: #5bc0de;
+            border: 6px solid #2b829d;
+            border-radius: 12px;
+            padding: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        /* Barra superior con la máscara y los relojes */
+        .top-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            padding: 0 10px;
+        }
+
+        .timer-box {
+            background-color: #f5f5f5;
+            border: 2px solid #2b829d;
+            color: #2b2b2b;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .spidey-mask-icon {
+            background-color: #d9534f;
+            border: 2px solid #b52b27;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 2px 0 #b52b27;
+        }
+
+        /* Pantalla superior del mapa */
+        .top-screen {
+            background-color: #0b1329;
+            border: 4px solid #2b829d;
+            border-radius: 6px;
+            height: 300px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .notification-banner {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #f0ad4e;
+            border: 2px solid #0b1329;
+            color: #7b1113;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+            padding: 4px;
+            width: 80%;
+            border-radius: 4px;
+            box-shadow: 0 2px 0 #b3742d;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        /* Panel inferior con distribución en 4 columnas de botones */
+        .bottom-panel {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+
+        .btn-col {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .btn {
+            border: 2px solid;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 9px;
+            padding: 6px 2px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+        }
+
+        .btn-green {
+            background-color: #5cb85c;
+            border-color: #398439;
+            color: #fff;
+            box-shadow: 0 2px 0 #398439;
+        }
+
+        .btn-red {
+            background-color: #d9534f;
+            border-color: #b52b27;
+            color: #fff;
+            box-shadow: 0 2px 0 #b52b27;
+        }
+
+        .btn-orange {
+            background-color: #f0ad4e;
+            border-color: #b3742d;
+            color: #2b2b2b;
+            box-shadow: 0 2px 0 #b3742d;
+        }
+
+        .btn-blue {
+            background-color: #46b8da;
+            border-color: #269abc;
+            color: #fff;
+            box-shadow: 0 2px 0 #269abc;
+        }
+    </style>
 </head>
 <body>
 
