@@ -96,4 +96,16 @@ body {
     color: #fff;
 }
 
-.btn
+.btn-red {
+    background-color: #d9534f;
+    border-color: #d43f3a;
+    box-shadow: 0 3px 0 #d43f3a;
+    color: #fff;
+}
+
+.btn-blue {
+    background-color: #337ab7;
+    border-color: #2e6da4;
+    box-shadow: 0 3px 0 #2e6da4;
+    color: #fff;
+}
